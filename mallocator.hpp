@@ -9,7 +9,11 @@
 namespace sx {
 	template<typename T>
 	class allocator {
-		using alloc_template = default_alloc_template<false, 0>;
+#ifndef USE_MALLOC_TEMPLATE
+		using alloc_template = default_alloc_template<false>;
+#else
+		using alloc_template = malloc_alloc_template<0>;
+#endif // !USE_MALLOC_TEMPLATE
 	public:
 		static T *allocate() {
 			return reinterpret_cast<T *>(alloc_template::allocate(sizeof(T)));
@@ -32,7 +36,6 @@ namespace sx {
 			sx::construct(ptr, std::forward<Args>(args)...);
 		}
 
-		template<typename T>
 		static void destroy(T *ptr) {
 			sx::destroy(ptr);
 		}
