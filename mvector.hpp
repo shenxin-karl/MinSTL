@@ -23,51 +23,66 @@ public:
 	using const_pointer = T const *;
 	using const_reference = T const &;
 protected:
-	iterator start;				/* 使用空间开始位置 */
-	iterator finish;			/* 使用空间结束位置 */
-	iterator end_of_store;		/* 存储空间结尾位置 */
+	static Alloc	allocator;
+	iterator		start;				/* 使用空间开始位置 */
+	iterator		finish;			/* 使用空间结束位置 */
+	iterator		end_of_store;		/* 存储空间结尾位置 */
 protected:
+	template<typename Func1, typename Func2>
+	void __insert_aux(Func1 &func1, Func2 &func2, std::true_type) {
+		func1();
+	}
+
+	template<typename Func1, typename Func2>
+	void __insert_aux(Func1 &func1, Func2 &func2, std::false_type) {
+		func2();
+	}
+
 	/* 插入辅助函数 */
 	void insert_aux(iterator position, value_type const &value) {
 		const size_type old_size = size();
-		const size_type new_size = (old_size == 0 ? 1 : 2 * old_size);
-		iterator new_start = Alloc::allocate(new_size);
+		const size_type new_size = old_size != 0 ? old_size * 2 : 1;
+		iterator new_start = allocator.allocate(new_size);
 		iterator new_finish = new_start;
-		
-		const size_type old_size = size();
-		const size_type new_size = old_size * 2;
-		iterator new_start = Alloc::allocate(new_size);
-		iterator new_finish = new_start;
-		if constexpr (has_noexcept_move_construct<value_type>::value) {
-			new_finish = uninitialized_copy(std::make_move_iterator(start),
+
+		auto has_noexcept_func = [&]()->void {
+			new_finish = sx::uninitialized_copy(std::make_move_iterator(start),
 											std::make_move_iterator(position),
 											new_start);
-			Alloc::constuct(new_finish, value);
+			allocator.construct(new_finish, value);
 			++new_finish;
-			new_finish = uninitialized_copy(std::make_move_iterator(position),
-											std::make_move_iterator(finish),
-											new_finish);
-		} else {
+			new_finish = sx::uninitialized_copy(std::make_move_iterator(position),
+												std::make_move_iterator(finish),
+												new_finish);
+		};
+
+		auto has_not_noexcept_func = [&]()->void {
 			try {
-				new_finish = uninitialized_copy(start, position, new_start);
-				Alloc::construct(new_finish, value);
-				new_finish = uninitialized_copy(position, finish, new_finish);
-			} catch(...) {
-				Alloc::destroy(new_start, new_finish);
-				Alloc::deallocate(new_start, new_start);
+				new_finish = sx::uninitialized_copy(start, position, new_start);
+				allocator.construct(new_finish, value);
+				new_finish = sx::uninitialized_copy(position, finish, new_finish);
+			}
+			catch (...) {
+				allocator.destroy(new_start, new_finish);
+				allocator.deallocate(new_start, new_size);
 				throw;
 			}
-		}
+		};
+
+		__insert_aux(has_noexcept_func, has_not_noexcept_func, has_noexcept_move_construct_t<T>());
+		allocator.construct(finish, value);
+		++finish;
 	}
 
 	void deallocate() {
-		Alloc::deallocate(start, end_of_store);
+		if (start != nullptr)
+			allocator.deallocate(start, (end_of_store - start));
 	}
 
-	void copy_backward(iterstor first, iterator end, iterator desc) {
+	void copy_backward(iterator first, iterator end, iterator desc) {
 		std::ptrdiff_t distan = distance(first, end);
 		desc += distan;
-		for (iter = end-1; iter >= first; iter--, desc--)
+		for (iterator iter = end-1; iter >= first; iter--, desc--)
 			*desc = *iter;
 	}
 
@@ -80,7 +95,7 @@ protected:
 
 	/* 分配并且进行初始化 */
 	static iterator allocate_and_fill(size_type n, value_type const &value) {
-		iterator result = Alloc::allocate(n);
+		iterator result = allocator.allocate(n);
 		uninitialized_fill_n(result, n, value);
 		return result;
 	}
@@ -105,7 +120,7 @@ public:
 	}
 	
 	vector(std::initializer_list<T> const &list) {
-		start = Alloc::allocate(list.size() + 1);
+		start = allocator.allocate(list.size() + 1);
 		uninitialized_copy(list.begin(), list.end(), start);
 		finish = start + list.size();
 		end_of_store = finish + 1;
@@ -118,7 +133,7 @@ public:
 		}
 
 		const size_type other_size = other.end_of_store - other.start;
-		start = Alloc::allocate(other_size);
+		start = allocator.allocate(other_size);
 		finish = start;
 		finish = uninitialized_copy(other.start, other.finish);
 		end_of_store = start + other_size;
@@ -146,49 +161,35 @@ public:
 	}
 
 	~vector() {
-		Alloc::destroy(strat, finish);
+		allocator.destroy(start, finish);
 		deallocate();
 	}
 
-	iterator begin() {
+	iterator begin() noexcept {
 		return start;
 	}
 
-	const_iterator cbegin() {
+	const_iterator cbegin() noexcept {
 		return static_cast<const_iterator>(start);
 	}
 
-	iterator end() {
+	iterator end() noexcept {
 		return finish;
 	}
 
-	const value_type front() const {
-		if (empty())
-			throw vector_empty();
-
-		return *front;
-	}
-
-	const value_type back() const {
-		if (empty())
-			throw vector_empty();
-
-		return *(finish - 1);
-	}
-
-	const_iterator cend() {
+	const_iterator cend() noexcept {
 		return static_cast<const_iterator>(finish);
 	}
 
-	size_type size() const {
+	size_type size() const noexcept {
 		return finish - start;
 	}
 
-	bool empty() const {
+	bool empty() const noexcept {
 		return size() == 0;
 	}
 
-	size_type capacity() const {
+	size_type capacity() const noexcept {
 		return end_of_store - start;
 	}
 
@@ -208,13 +209,13 @@ public:
 		return *(finish-1);
 	}
 
-	const_reference back() {
+	const_reference back() const {
 		return *(finish-1);
 	}
 
 	void push_back(value_type const &value) {
 		if (finish != end_of_store) {
-			Alloc::construct(finish, value);
+			allocator.construct(finish, value);
 			++finish;
 		}
 		else
@@ -226,20 +227,20 @@ public:
 			throw vector_empty();
 
 		--finish;
-		Alloc::destroy(finish);
+		allocator.destroy(finish);
 	}
 
 	template<typename... Args>
 	void emplace_back(Args&&... args) {
 		if (finish != end_of_store) {
-			Alloc::construct(finish, std::forward<Args>(args)...);
+			allocator.construct(finish, std::forward<Args>(args)...);
 			++finish;
 			return;
 		}
 
 		const size_type old_size = size();
 		const size_type new_size = old_size * 2;
-		iterator new_start = Alloc::allocate(new_size);
+		iterator new_start = allocator.allocate(new_size);
 		iterator new_finish = new_start;
 		if constexpr (has_noexcept_move_construct<value_type>::value)
 			new_finish = uninitialized_copy(std::make_move_iterator(start), 
@@ -250,16 +251,16 @@ public:
 				new_finish = uninitialized_copy(start, finish, new_finish);
 			}
 			catch (...) {
-				Alloc::destroy(new_start, new_finish);
-				Alloc::deallocate(new_start);
-				throw
+				allocator.destroy(new_start, new_finish);
+				allocator.deallocate(new_start);
+				throw;
 			}
 		}
 
-		Alloc::construct(new_finish, std::forward<Args>(args)...);
+		allocator.construct(new_finish, std::forward<Args>(args)...);
 		++new_finish;
 
-		Alloc::destroy(start, finish);
+		allocator.destroy(start, finish);
 		deallocate();
 		start = new_start;
 		finish = new_finish;
@@ -276,13 +277,13 @@ public:
 			std::copy(position + 1, finish, position);
 		
 		--finish;
-		Alloc::destroy(finish);
+		allocator.destroy(finish);
 		return position;
 	}
 
 	iterator erase(iterator first, iterator last) {
 		iterator i = std::copy(last, finish, first);
-		Alloc::destroy(i, finish);
+		allocator.destroy(i, finish);
 		finish = finish - (last - first);
 		return first;
 	}
@@ -309,16 +310,16 @@ public:
 			else {
 				uninitialized_fill_n(finish, n - element_after, value_copy);
 				finish += n - element_after;
-				uninitialized_copy(poisition, old_finish, finish);
+				uninitialized_copy(position, old_finish, finish);
 				finish += old_finish - position;
 				fill(position, old_finish, value_copy);
 			}
 		}
 		/* 空间不足 */
 		else {
-			const old_size = size();
-			const new_size = old_size + std::max(old_size, n);
-			iterator new_start = Alloc::allocate(new_size);
+			const size_type old_size = size();
+			const size_type new_size = old_size + std::max(old_size, n);
+			iterator new_start = allocator.allocate(new_size);
 			iterator new_finish = new_start;
 			if constexpr (has_noexcept_move_construct<value_type>::value) {
 				new_finish = uninitialized_copy(std::make_move_iterator(start), 
@@ -333,11 +334,11 @@ public:
 					new_finish = uninitialized_copy(position, finish, new_finish);
 				}
 				catch (...) {
-					Alloc::destroy(new_start, new_finish);
-					Alloc::deallocate(new_start, new_size);
+					allocator.destroy(new_start, new_finish);
+					allocator.deallocate(new_start, new_size);
 					throw;
 				}
-				Alloc::destroy(start, end);
+				allocator.destroy(start, end);
 				deallocate();
 				start = new_start;
 				finish = new_finish;
@@ -354,7 +355,7 @@ public:
 		insert_aux(reinterpret_cast<iterator>(position), value);
 	}
 
-	friend void swap(vector<T, allocator<T>> &first, vector<T, allocator<T>> &second) noexcept {
+	friend void swap(vector &first, vector &second) noexcept {
 		std::swap(first.start, second.start);
 		std::swap(first.finish, second.finish);
 		std::swap(first.end_of_store, second.end_of_store);
