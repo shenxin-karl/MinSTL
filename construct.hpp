@@ -71,7 +71,7 @@ namespace sx {
 	template<typename InputIter, typename ForwardIter> inline
 	ForwardIter uninitialized_copy(InputIter first, InputIter end, ForwardIter result)
 	{
-		using has_traivial = has_traivial_destructor< ForwardIter>;
+		using has_traivial = has_traivial_destructor_t<ForwardIter>;
 		return uninitialized_copy_aux(first, end, result, has_traivial{});
 	}
 
