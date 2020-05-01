@@ -6,7 +6,6 @@
 #include <initializer_list>
 #include <algorithm>
 
-/* 测试 git 提交 */
 namespace sx {
 class vector_empty : public std::exception {
 };
@@ -72,14 +71,14 @@ protected:
 			*desc = *iter;
 	}
 
-	/* ����ռ䲢��ʼ�� */
+	/* 初始化函数 */
 	static void fill_initialize(size_type n, value_type const &value) {
 		start = allocate_and_fill(n, value);
 		finish = start + n;
 		end_of_store = finish;
 	}
 
-	/* ����ռ䲢��ʼ�� */
+	/* 分配并且进行初始化 */
 	static iterator allocate_and_fill(size_type n, value_type const &value) {
 		iterator result = Alloc::allocate(n);
 		uninitialized_fill_n(result, n, value);
@@ -296,7 +295,7 @@ public:
 		if (n == 0)
 			return;
 
-		/* �ռ��㹻 */
+		/* 空间足够 */
 		if (size_type(end_of_store - finish) >= n) {
 			value_type value_copy = value;
 			const size_type element_after = finish - position;
@@ -315,7 +314,7 @@ public:
 				fill(position, old_finish, value_copy);
 			}
 		}
-		/* �ռ䲻�� */
+		/* 空间不足 */
 		else {
 			const old_size = size();
 			const new_size = old_size + std::max(old_size, n);
