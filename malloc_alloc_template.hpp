@@ -43,7 +43,8 @@ namespace sx {
 		}
 	};
 
-	void(*malloc_alloc_template<0>::malloc_alloc_oom_handler)() = nullptr;
+	template<>
+	void (*malloc_alloc_template<0>::malloc_alloc_oom_handler)() = nullptr;
 
 	template<int inst>
 	void *malloc_alloc_template<inst>::oom_malloc(std::size_t n)
