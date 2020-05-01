@@ -6,6 +6,7 @@
 #include <initializer_list>
 #include <algorithm>
 
+/* 测试 git 提交 */
 namespace sx {
 class vector_empty : public std::exception {
 };
