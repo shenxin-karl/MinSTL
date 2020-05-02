@@ -1,6 +1,7 @@
 #ifndef M_ITERATOR_HPP
 #define M_ITERATOR_HPP
 #include <cstddef>
+#include <type_traits>
 
 namespace sx {
 	struct input_iterator_tag {};
@@ -59,7 +60,7 @@ namespace sx {
 
 	template<typename Iterator> inline
 	typename iterator_traits<Iterator>::value_type
-	value_type(Iterator const &);
+	iterator_value_type(Iterator const &);
 
 	template<typename InputIterator> inline
 	typename iterator_traits<InputIterator>::difference_type
@@ -82,12 +83,11 @@ namespace sx {
 		return last - first;
 	}
 
-	template<typename Iterator> inline 
-	typename iterator_traits<Iterator>::dirrerence_type
-	distance(Iterator first, Iterator last)
-	{
-		using catagory = typename iterator_traits<Iterator>::iterator_catagory;
-		return distance_aux(first, last, catagory());
+	template<typename Iterator> inline
+	typename iterator_traits<Iterator>::difference_type
+	distance(Iterator first, Iterator end) {
+		using category = typename iterator_traits<Iterator>::iterator_category;
+		return distance_aux(first, end, category{});
 	}
 
 	template<typename InputIterator> inline
@@ -100,7 +100,7 @@ namespace sx {
 	template<typename BidirectionalIterator> inline 
 	void advance_aux(BidirectionalIterator &iter, int n, bidirectional_iterator_tag)
 	{
-		if (n > ) {
+		if (n > 0) {
 			while (n--)
 				++iter;
 		}
@@ -129,8 +129,8 @@ namespace sx {
 		Iterator iterator;
 	public:
 		move_iterator(Iterator iter) : iterator(iter) { }
-		move_iterator(move_iterator other) = default;
-		move_iterator &operator=(move_iterator other) = default;
+		move_iterator(move_iterator const &other) = default;
+		move_iterator &operator=(move_iterator const &other) = default;
 		move_iterator() = delete;
 		~move_iterator() = default;
 
@@ -194,6 +194,17 @@ namespace sx {
 			return &(*iterator);
 		}
 	};
+
+
+template<typename T, std::size_t N> constexpr
+T *begin(T (&arr)[N]) {
+	return arr;
+}
+
+template<typename T, std::size_t N> constexpr
+T *end(T (&arr)[N]) {
+	return arr + N;
+}
 
 }
 
