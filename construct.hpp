@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <cstring>
 #include "mtype_traits.hpp"
+#include "miterator.hpp"
 
 
 namespace sx {
@@ -26,22 +27,22 @@ namespace sx {
 	ForwardIter uninitialized_copy_aux(InputIter, InputIter, ForwardIter, std::true_type);
 
 	template<typename ForwardIter, typename T>
-	void uninitialized_fill(ForwardIter, ForwardIter, T const &);
+	ForwardIter uninitialized_fill(ForwardIter, ForwardIter, T const &);
 
 	template<typename ForwardIter, typename T>
-	void uninitialized_fill_aux(ForwardIter, ForwardIter, T const &, std::false_type);
+	ForwardIter uninitialized_fill_aux(ForwardIter, ForwardIter, T const &, std::false_type);
 
 	template<typename ForwardIter, typename T>
-	void uninitialized_fill_aux(ForwardIter, ForwardIter, T const &, std::true_type);
+	ForwardIter uninitialized_fill_aux(ForwardIter, ForwardIter, T const &, std::true_type);
 
 	template<typename ForwardIter, typename T>
-	void uninitialized_fill_n(ForwardIter, std::size_t, T const &);
+	ForwardIter uninitialized_fill_n(ForwardIter, std::size_t, T const &);
 
 	template<typename ForwardIter, typename T>
-	void uninitialized_fill_n_aux(ForwardIter, std::size_t, T const &, std::true_type);
+	ForwardIter uninitialized_fill_n_aux(ForwardIter, std::size_t, T const &, std::true_type);
 
 	template<typename ForwardIter, typename T>
-	void uninitialized_fill_n_aux(ForwardIter, std::size_t, T const &, std::false_type);
+	ForwardIter uninitialized_fill_n_aux(ForwardIter, std::size_t, T const &, std::false_type);
 
 
 	template<typename T, typename... Args> inline
@@ -65,7 +66,7 @@ namespace sx {
 	void destroy_aux(ForwardIter first, ForwardIter end, std::false_type)
 	{
 		for (; first != end; ++first)
-			destroy(&*first);
+			sx::destroy(&*first);
 	}
 
 	template<typename InputIter, typename ForwardIter> inline
@@ -95,11 +96,11 @@ namespace sx {
 		InputIter begin = first;
 		try {
 			for (; first != last; ++first, ++result)
-				consruct(&*result, *first);
+				sx::consruct(&*result, *first);
 			return result;
 		} catch(...) {
 			for (; begin != first; ++first)
-				destroy(&*begin);
+				sx::destroy(&*begin);
 			throw;
 		}
 	}
@@ -123,11 +124,11 @@ namespace sx {
 		ForwardIter begin = first;
 		try {
 			for (; first < end; ++first)
-				construct(&*first, value);
+				sx::construct(&*first, value);
 			return first;
 		} catch(...) {
 			for (; begin != first; ++begin)
-				destroy(&*begin);
+				sx::destroy(&*begin);
 			throw;
 		}
 	}
@@ -141,8 +142,8 @@ namespace sx {
 	template<typename ForwardIter, typename T> inline
 	ForwardIter uninitialized_fill_n(ForwardIter first, std::size_t n, T const &value)
 	{
-		using has_traivial = has_traivial_destructor<ForwardIter>;
-		return uninitialized_fill_n_aux(first, n, has_traivial{});
+		using has_traivial = has_traivial_destructor_t<decltype(sx::iterator_value_type(ForwardIter{}))>;
+		return uninitialized_fill_n_aux(first, n, value, has_traivial{});
 	}
 
 	template<typename ForwardIter, typename T> inline
@@ -157,11 +158,11 @@ namespace sx {
 		ForwardIter begin = first;
 		try {
 			for (std::size_t i = 0; i < n; ++i, ++first)
-				construct(&*first, value);
+				sx::construct(&*first, value);
 			return first;
 		} catch(...) {
 			for (; begin != first; ++begin)
-				destroy(&*begin);
+				sx::destroy(&*begin);
 			throw;
 		}
 	}
