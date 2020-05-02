@@ -7,140 +7,30 @@
 #include <algorithm>
 
 namespace sx {
-class vector_empty : public std::exception {
-};
 
-template<typename T, typename Alloc = allocator<T>>
+template<typename T, typename Alloc = sx::allocator<T>>
 class vector {
+	using value_type 		= T;
+	using size_type 		= std::size_t;
+	using difference_type 	= std::ptrdiff_t;
+	using pointer 			= T *;
+	using reference 		= T &;
+	using const_pointer 	= T const *;
+	using const_reference 	= T const &;
+	using iterator 			= T *;
+	using const_iterator 	= T const *;
+private:
+	static Alloc 		allocator;			/* 分配器 */
+	iterator 			start;				/* 使用空间开始 */
+	iterator 			finish;				/* 使用空间末尾 */
+	iterator 			end_of_store;		/* 可用空间末尾 */
 public:
-	using value_type = T;
-	using pointer = value_type *;
-	using referenc = value_type &;
-	using iterator = value_type *;
-	using const_iterator = value_type const *;
-	using size_type = std::size_t;
-	using difference_type = std::ptrdiff_t;
-	using const_pointer = T const *;
-	using const_reference = T const &;
-protected:
-	static Alloc	allocator;
-	iterator		start;				/* 使用空间开始位置 */
-	iterator		finish;			/* 使用空间结束位置 */
-	iterator		end_of_store;		/* 存储空间结尾位置 */
-protected:
-	template<typename Func1, typename Func2>
-	void __insert_aux(Func1 &func1, Func2 &func2, std::true_type) {
-		func1();
-	}
-
-	template<typename Func1, typename Func2>
-	void __insert_aux(Func1 &func1, Func2 &func2, std::false_type) {
-		func2();
-	}
-
-	/* 插入辅助函数 */
-	void insert_aux(iterator position, value_type const &value) {
-		const size_type old_size = size();
-		const size_type new_size = old_size != 0 ? old_size * 2 : 1;
-		iterator new_start = allocator.allocate(new_size);
-		iterator new_finish = new_start;
-
-		auto has_noexcept_func = [&]()->void {
-			new_finish = sx::uninitialized_copy(std::make_move_iterator(start),
-											std::make_move_iterator(position),
-											new_start);
-			allocator.construct(new_finish, value);
-			++new_finish;
-			new_finish = sx::uninitialized_copy(std::make_move_iterator(position),
-												std::make_move_iterator(finish),
-												new_finish);
-		};
-
-		auto has_not_noexcept_func = [&]()->void {
-			try {
-				new_finish = sx::uninitialized_copy(start, position, new_start);
-				allocator.construct(new_finish, value);
-				new_finish = sx::uninitialized_copy(position, finish, new_finish);
-			}
-			catch (...) {
-				allocator.destroy(new_start, new_finish);
-				allocator.deallocate(new_start, new_size);
-				throw;
-			}
-		};
-
-		__insert_aux(has_noexcept_func, has_not_noexcept_func, has_noexcept_move_construct_t<T>());
-		allocator.construct(finish, value);
-		++finish;
-	}
-
-	void deallocate() {
-		if (start != nullptr)
-			allocator.deallocate(start, (end_of_store - start));
-	}
-
-	void copy_backward(iterator first, iterator end, iterator desc) {
-		std::ptrdiff_t distan = distance(first, end);
-		desc += distan;
-		for (iterator iter = end-1; iter >= first; iter--, desc--)
-			*desc = *iter;
-	}
-
-	/* 初始化函数 */
-	static void fill_initialize(size_type n, value_type const &value) {
-		start = allocate_and_fill(n, value);
-		finish = start + n;
-		end_of_store = finish;
-	}
-
-	/* 分配并且进行初始化 */
-	static iterator allocate_and_fill(size_type n, value_type const &value) {
-		iterator result = allocator.allocate(n);
-		uninitialized_fill_n(result, n, value);
-		return result;
-	}
-public:
-	vector() : start(nullptr), finish(nullptr), end_of_store(nullptr) {
-	}
-
-	vector(size_type n, value_type const &value) { 
-		fill_initialize(n, value); 
-	}
-
-	vector(int n, value_type const &value) { 
-		fill_initialize(n, value); 
-	}
-
-	vector(long n, value_type const &value) { 
-		fill_initialize(n, value); 
-	}
-	
-	explicit vector(size_type n) { 
-		fill_initialize(n, T{}); 
-	}
-	
-	vector(std::initializer_list<T> const &list) {
-		start = allocator.allocate(list.size() + 1);
-		uninitialized_copy(list.begin(), list.end(), start);
-		finish = start + list.size();
-		end_of_store = finish + 1;
-	}
+	vector() : start(nullptr), finish(nullptr), end_of_store(nullptr) {}
 
 	vector(vector const &other) {
-		if (other.empty()) {
-			start = finish = end_of_store = nullptr;
-			return;
-		}
-
-		const size_type other_size = other.end_of_store - other.start;
-		start = allocator.allocate(other_size);
-		finish = start;
-		finish = uninitialized_copy(other.start, other.finish);
-		end_of_store = start + other_size;
-	}
-
-	vector &operator=(vector other) {
-		swap(*this, other);
+		start = alloc_and_fill(other.begin(), other.end());
+		finish = start + other.size();
+		end_of_store = start + other.capacity();
 	}
 
 	vector(vector &&other) 
@@ -148,11 +38,12 @@ public:
 		other.start = other.finish = other.end_of_store = nullptr;
 	}
 
-	vector &operator=(vector &&other) {
-		if (this == &other)
-			return *this;
+	vector &operator=(vector other) {
+		swap(*this, other);
+		return *this;
+	}
 
-		~vector();
+	vector &operator=(vector &&other) {
 		start = other.start;
 		finish = other.finish;
 		end_of_store = other.end_of_store;
@@ -165,22 +56,124 @@ public:
 		deallocate();
 	}
 
-	iterator begin() noexcept {
-		return start;
+	vector(std::initializer_list<T> const &list) {
+		start = alloc_and_fill(list.begin(), list.end());
+		finish = end_of_store = start + list.size();
 	}
 
-	const_iterator cbegin() noexcept {
-		return static_cast<const_iterator>(start);
+	template<typename InputIterator>
+	vector(InputIterator first, InputIterator end) {
+		difference_type distance = sx::distance(first, end);
+		start = allocator.allocate(distance);
+		try {
+			finish = uninitialized_copy(first, end, start);
+			end_of_store = finish;
+		} catch (...) {
+			allocator.deallocate(start, distance);
+			throw;
+		}
+	}
+private:
+	friend void swap(vector &first, vector &second) noexcept {
+		using std::swap;
+		swap(first.start, second.start);
+		swap(first.finish, second.finish);
+		swap(first.end_of_store, second.end_of_store);
 	}
 
-	iterator end() noexcept {
-		return finish;
+	void deallocate() {
+		allocator.deallocate(start, end_of_store - start);
 	}
 
-	const_iterator cend() noexcept {
-		return static_cast<const_iterator>(finish);
+	template<typename InputIterator>
+	static iterator alloc_and_fill(InputIterator first, InputIterator end) {
+		difference_type distance = sx::distance(first, end);
+		iterator result = allocator.allocate(distance);
+		try {
+			uninitialized_copy(first, end, result);
+			return result;
+		} catch (...) {
+			allocator.deallocate(result, distance);
+			throw;
+		}
 	}
 
+	static void copy_backward(iterator begin, iterator end, iterator desc) {
+		difference_type distance = sx::distance(begin, end);
+		iterator desc_last = desc + distance - 1;
+		for (iterator last = end - 1; last >= begin; --last, --desc_last)
+			*desc_last = *last;
+	}
+
+	template<typename Func1, typename Func2>
+	static void __insert_aux(Func1 &func1, Func2 &func2, std::true_type) {
+		func1();
+	}
+
+	template<typename Func1, typename Func2>
+	static void __insert_aux(Func1 &func1, Func2 &func2, std::false_type) {
+		func2();
+	}
+
+	/* 插入辅助函数, 当到达 position 位置时, 调用 func 闭包函数立即构造元素 */
+	template<typename ConstructFunc>
+	iterator insert_aux(iterator position, ConstructFunc const &construct_func) {
+		if (finish != end_of_store) {
+			if (position == end()) {
+				++finish;
+				construct_func(position);
+				return position;
+			}
+
+			allocator.construct(finish, *(finish - 1));
+			++finish;
+			copy_backward(position, finish - 1, position + 1);
+			construct_func(position);
+			return position;
+		}
+
+		const size_type old_size = size();
+		const size_type new_size = old_size != 0 ? old_size * 2 : 1;
+		iterator new_start = allocator.allocate(new_size);
+		iterator new_finish = new_start;
+		iterator result = new_start;
+
+		/* 使用移动构造, 移动元素 */
+		auto has_noexcept_move_construct = [&]()->void {
+			new_finish = sx::uninitialized_copy(std::make_move_iterator(start), 
+												std::make_move_iterator(position), new_start);
+			construct_func(new_finish);
+			result = new_finish;
+			++new_finish;
+			new_finish = sx::uninitialized_copy(std::make_move_iterator(position), 
+												std::make_move_iterator(finish), new_finish);
+		};
+		
+		/* 使用拷贝构造, 移动元素 */
+		auto has_not_noexcept_move_construct = [&]()->void {
+			try {
+				new_finish = sx::uninitialized_copy(start, position, new_start);
+				construct_func(new_finish);
+				result = new_finish;
+				++new_finish;
+				new_finish = sx::uninitialized_copy(position, finish, new_finish);
+			} catch(...) {
+				for (iterator beg = new_start; beg != result; ++beg)
+					allocator.destroy(beg);
+				allocator.deallocate(new_start, new_size);
+				throw;
+			}
+		};
+		__insert_aux(has_noexcept_move_construct, 
+					 has_not_noexcept_move_construct, has_noexcept_move_construct_t<T>{});
+		allocator.destroy(start, finish);
+		deallocate();
+		start = new_start;
+		finish = new_finish;
+		end_of_store = start + new_size;
+		return result;
+	}
+public:
 	size_type size() const noexcept {
 		return finish - start;
 	}
@@ -193,172 +186,192 @@ public:
 		return end_of_store - start;
 	}
 
-	referenc operator[](size_type n) {
-		return *(start + n);
+	iterator begin() noexcept {
+		return start;
 	}
 
-	referenc front() {
+	iterator end() noexcept {
+		return finish;
+	}
+
+	const_iterator begin() const noexcept {
+		return start;
+	}
+
+	const_iterator end() const noexcept {
+		return finish;
+	}
+
+	const_iterator cbegin() const {
+		return start;
+	}
+
+	const_iterator cend() const {
+		return finish;
+	}
+
+	value_type &front() {
 		return *start;
 	}
 
-	const_reference front() const {
+	value_type &front() const {
 		return *start;
 	}
 
-	referenc back() {
-		return *(finish-1);
+	value_type &back() {
+		return *(finish - 1);
 	}
 
-	const_reference back() const {
-		return *(finish-1);
+	value_type &back() const {
+		return *(finish - 1);
+	}
+
+	iterator insert(iterator position, value_type const &value) {
+		auto construct_func = [&](iterator pos) {
+			allocator.construct(pos, value);
+		};
+		iterator result = insert_aux(position, construct_func);
+		return ++result;
+	}
+
+	template<typename... Args>
+	iterator emplace(iterator position, Args&&... args) {
+		auto construct_func = [&](iterator pos) {
+			allocator.construct(pos, std::forward<Args>(args)...);
+		};
+		iterator result = insert_aux(position, construct_func);
+		return ++result;
 	}
 
 	void push_back(value_type const &value) {
-		if (finish != end_of_store) {
-			allocator.construct(finish, value);
-			++finish;
-		}
-		else
-			insert_aux(end(), value);
-	}
-
-	void pop_back() {
-		if (empty())
-			throw vector_empty();
-
-		--finish;
-		allocator.destroy(finish);
+		insert_aux(end(), [&](iterator pos) {
+			allocator.construct(pos, value);
+		});
 	}
 
 	template<typename... Args>
 	void emplace_back(Args&&... args) {
-		if (finish != end_of_store) {
-			allocator.construct(finish, std::forward<Args>(args)...);
-			++finish;
-			return;
-		}
-
-		const size_type old_size = size();
-		const size_type new_size = old_size * 2;
-		iterator new_start = allocator.allocate(new_size);
-		iterator new_finish = new_start;
-		if constexpr (has_noexcept_move_construct<value_type>::value)
-			new_finish = uninitialized_copy(std::make_move_iterator(start), 
-											std::make_move_iterator(finish), 
-											new_finish);
-		else {
-			try {
-				new_finish = uninitialized_copy(start, finish, new_finish);
-			}
-			catch (...) {
-				allocator.destroy(new_start, new_finish);
-				allocator.deallocate(new_start);
-				throw;
-			}
-		}
-
-		allocator.construct(new_finish, std::forward<Args>(args)...);
-		++new_finish;
-
-		allocator.destroy(start, finish);
-		deallocate();
-		start = new_start;
-		finish = new_finish;
-		end_of_store = new_start + new_size;
+		insert_aux(end(), [&](iterator pos) {
+			allocator.construct(pos, std::forward<Args>(args)...);
+		});
 	}
 
-	template<typename... Args>
-	void emplace_insert(iterator position, Args&&... args) {
-		insert_aux(position, value_type(std::forward<Args>(args)...));
+	iterator insert(iterator position, size_type size, value_type const &value) {
+		if (size == 0)
+			return ++position;
+
+		size_type store_left = end_of_store - finish;
+		if (size <= store_left) {
+			size_type element_after = finish - position;
+			if (element_after > size) {
+				sx::uninitialized_copy(finish - size, finish, finish);
+				copy_backward(position, position + size, position + size);
+				std::fill_n(position, size, value);
+			} else {
+				sx::uninitialized_copy(position, finish, finish + (size - element_after));
+				sx::uninitialized_fill_n(finish, size - element_after, value);
+				std::fill_n(position, finish - position, value);
+			}
+			finish += size;
+			return position + size + 1;
+		} else {
+			size_type old_size = this->size();
+			size_type new_size = old_size != 0 ? std::max(old_size * 2, size + old_size) : size;
+			iterator new_start = allocator.allocate(new_size);
+			iterator new_finish = new_start;
+			iterator ret = new_start;
+			
+			/* 使用移动构造, 移动元素 */
+			auto has_noexcept_move_construct = [&]()->void {
+				new_finish = sx::uninitialized_copy(std::make_move_iterator(start),
+									   				std::make_move_iterator(position), new_start);
+				new_finish = sx::uninitialized_fill_n(new_finish, size, value);
+				ret = new_finish;
+				new_finish = sx::uninitialized_copy(std::make_move_iterator(position), 
+													std::make_move_iterator(finish), new_finish);
+			};
+
+			/* 使用拷贝构造, 移动元素 */
+			auto has_not_noexcept_move_construct = [&]()->void {
+				try {
+					new_finish = sx::uninitialized_copy(start, position, new_finish);
+					new_finish = sx::uninitialized_fill_n(new_finish, size, value);
+					ret = new_finish;
+					new_finish = sx::uninitialized_copy(position, finish, new_finish);
+				} catch(...) {
+					for (iterator beg = new_start; beg != ret; ++beg) 
+						allocator.destroy(beg);
+					allocator.deallocate(new_start, new_size);
+					throw;
+				}
+			};
+			__insert_aux(has_noexcept_move_construct, has_noexcept_move_construct,
+						 has_noexcept_move_construct_t<T>{});
+			allocator.destroy(start, finish);
+			deallocate();
+			start = new_start;
+			finish = new_finish;
+			end_of_store = new_start + new_size;
+			return ret;
+		}
+	}
+
+	const_iterator insert(const_iterator position, std::size_t size, value_type const &value) {
+		iterator ret = insert(const_cast<iterator>(position), size, value);
+		return const_cast<const_iterator>(ret);
+	}
+	
+	const_iterator insert(const_iterator position, value_type const &value) {
+		iterator ret = insert(const_cast<iterator>(position), value);
+		return const_cast<const_iterator>(ret);
+	}
+
+	iterator erase(iterator begin, iterator end) {
+		iterator iter = std::copy(end, finish, begin);
+		allocator.destroy(iter, finish);
+		finish = finish - (end - begin);
+		return begin;
 	}
 
 	iterator erase(iterator position) {
-		if (position + 1 != end())
-			std::copy(position + 1, finish, position);
-		
+		if (position+1 != end()) 
+			std::copy(position+1, finish, position);
 		--finish;
 		allocator.destroy(finish);
 		return position;
 	}
 
-	iterator erase(iterator first, iterator last) {
-		iterator i = std::copy(last, finish, first);
-		allocator.destroy(i, finish);
-		finish = finish - (last - first);
-		return first;
+	const_iterator erase(const_iterator begin, const_iterator end) {
+		iterator ret = erase(const_cast<iterator>(begin), const_cast<iterator>(end));
+		return const_cast<const_iterator>(ret);
+	}
+
+	const_iterator erase(const_iterator postion) {
+		iterator ret = erase(const_cast<iterator>(postion));
+		return const_cast<const_iterator>(ret);
 	}
 
 	void clear() {
 		erase(begin(), end());
 	}
 
-	void insert(iterator position, size_type n, value_type const &value) {
-		if (n == 0)
-			return;
-
-		/* 空间足够 */
-		if (size_type(end_of_store - finish) >= n) {
-			value_type value_copy = value;
-			const size_type element_after = finish - position;
-			iterator old_finish = finish;
-			if (element_after > n) {
-				uninitialized_copy(finish - n, finish, finish);
-				finish += n;
-				copy_backward(position, old_finish - n, old_finish);
-				fill(position, position + n, value_copy);
-			}
-			else {
-				uninitialized_fill_n(finish, n - element_after, value_copy);
-				finish += n - element_after;
-				uninitialized_copy(position, old_finish, finish);
-				finish += old_finish - position;
-				fill(position, old_finish, value_copy);
-			}
-		}
-		/* 空间不足 */
-		else {
-			const size_type old_size = size();
-			const size_type new_size = old_size + std::max(old_size, n);
-			iterator new_start = allocator.allocate(new_size);
-			iterator new_finish = new_start;
-			if constexpr (has_noexcept_move_construct<value_type>::value) {
-				new_finish = uninitialized_copy(std::make_move_iterator(start), 
-												std::make_move_iterator(position), new_finish);
-				new_finish = uninitialized_fill_n(new_finish, n, value);
-				new_finish = uninitialized_copy(std::make_move_iterator(position),
-												std::make_move_iterator(finish), new_finish);
-			} else {
-				try {
-					new_finish = uninitialized_copy(start, position, new_finish);
-					new_finish = uninitialized_fill_n(new_finish, n, value);
-					new_finish = uninitialized_copy(position, finish, new_finish);
-				}
-				catch (...) {
-					allocator.destroy(new_start, new_finish);
-					allocator.deallocate(new_start, new_size);
-					throw;
-				}
-				allocator.destroy(start, end);
-				deallocate();
-				start = new_start;
-				finish = new_finish;
-				end_of_store = new_start + new_size;
-			}
-		}
+	value_type &operator[](std::size_t index) {
+		return start[index];
 	}
 
-	void insert(iterator position, value_type const &value) {
-		insert_aux(position, value);
+	const value_type &operator[](std::size_t index) const {
+		return start[index];
 	}
 
-	void insert(const_iterator position, value_type const &value) {
-		insert_aux(reinterpret_cast<iterator>(position), value);
+	value_type &at(std::size_t index) {
+		if (index > size())
+			throw std::out_of_range("invalid index");
+
+		return (*this)[index];
 	}
 
-	friend void swap(vector &first, vector &second) noexcept {
-		std::swap(first.start, second.start);
-		std::swap(first.finish, second.finish);
-		std::swap(first.end_of_store, second.end_of_store);
+	value_type const &at(std::size_t index) const {
+		return const_cast<value_type const &>(at(index));
 	}
 };
 
