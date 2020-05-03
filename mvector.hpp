@@ -371,9 +371,15 @@ public:
 	}
 
 	value_type const &at(std::size_t index) const {
-		return const_cast<value_type const &>(at(index));
+		if (index > size())
+			throw std::out_of_range("invalid index");
+
+		return (*this)[index];
 	}
 };
+
+template<typename T, typename Alloc>
+Alloc vector<T, Alloc>::allocator;
 
 }
 
