@@ -7,7 +7,7 @@ namespace sx {
 	template<typename T>
 	class value_type {
 		template<typename U, typename U1 = typename U::value_type>
-		static std::true_type match(nullptr_t);
+		static std::true_type match(std::nullptr_t);
 
 		template<typename U>
 		static std::false_type match(...);
@@ -27,11 +27,13 @@ namespace sx {
 								std::is_arithmetic<T>::value		||
 								std::is_null_pointer<T>::value>
 	class has_traivial_destructor {
+	public:
 		using type = std::false_type;
 	};
 
 	template<typename T>
 	class has_traivial_destructor<T, true> {
+	public:
 		using type = std::true_type;
 	};
 
@@ -42,8 +44,8 @@ namespace sx {
 
 	template<typename T>
 	class has_noexcept_move_construct {
-		template<typename U, typename = std::enable_if_t<noexcept(U(std::declval_t<U>()))>>
-		static std::true_type match(nullptr_t);
+		template<typename U, typename = std::enable_if_t<noexcept(U(std::declval<U>()))>>
+		static std::true_type match(std::nullptr_t);
 
 		template<typename U>
 		static std::false_type match(...);
