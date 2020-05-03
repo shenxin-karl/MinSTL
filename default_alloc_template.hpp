@@ -208,6 +208,7 @@ private:
 		if (nobjs > 1) {
 			Obj * volatile *my_free_list = free_list + FOUND_INDEX(bytes);
 			Obj *cur_obj = reinterpret_cast<Obj *>(chunk + bytes);
+			Obj *start_obj = cur_obj;
 			Obj *next_obj;
 			for (int i = 1; i < nobjs; ++i) {
 				next_obj = cur_obj + 1;
@@ -288,9 +289,14 @@ public:
 	}
 
 	static void deallocate(void *ptr, std::size_t bytes) {
-		if (bytes > MAX_BYTES)
+		if (ptr == nullptr)
+			return;
+
+		if (bytes > MAX_BYTES) {
 			malloc_alloc::deallocate(ptr, bytes);
-		
+			return;
+		}
+
 		Obj *volatile *my_free_list = free_list + FOUND_INDEX(bytes);
 		Obj *obj_ptr = reinterpret_cast<Obj *>(ptr);
 		obj_ptr->free_list_link = *free_list;
