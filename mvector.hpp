@@ -98,13 +98,6 @@ private:
 		}
 	}
 
-	static void copy_backward(iterator begin, iterator end, iterator desc) {
-		difference_type distance = sx::distance(begin, end);
-		iterator desc_last = desc + distance - 1;
-		for (iterator last = end - 1; last >= begin; --last, --desc_last)
-			*desc_last = *last;
-	}
-
 	template<typename Func1, typename Func2>
 	static void __insert_aux(Func1 &func1, Func2 &func2, std::true_type) {
 		func1();
@@ -127,7 +120,7 @@ private:
 
 			allocator.construct(finish, *(finish - 1));
 			++finish;
-			copy_backward(position, finish - 1, position + 1);
+			std::copy_backward(position, finish - 2, position + 1);
 			construct_func(position);
 			return position;
 		}
@@ -265,7 +258,7 @@ public:
 			size_type element_after = finish - position;
 			if (element_after > size) {
 				sx::uninitialized_copy(finish - size, finish, finish);
-				copy_backward(position, position + size, position + size);
+				std::copy_backward(position, finish - size, position + size);
 				std::fill_n(position, size, value);
 			} else {
 				sx::uninitialized_copy(position, finish, finish + (size - element_after));
