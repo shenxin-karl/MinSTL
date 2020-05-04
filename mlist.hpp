@@ -12,7 +12,7 @@ class list_empty : public std::exception {
 template<typename T>
 struct link_node;
 
-template<typename T, typename Alloc = sx::allocator<link_node<T>>>
+template<typename T, typename Alloc = sx::allocator<T>>
 class list;
 
 template<typename T, typename Alloc>
@@ -155,6 +155,8 @@ template<typename T, typename Alloc>
 class list {
 	template<typename Type, typename AllocType>
 	friend void swap(list<Type, AllocType> &, list<Type, AllocType> &) noexcept;
+
+	using Allocator = decltype(sx::transform_alloator_type<T, link_node<T>>(Alloc{}));
 public: 
     using value_type            = T;
     using pointer               = T *;
@@ -167,9 +169,9 @@ public:
     using iterator              = list_iterator<T>;
 	using const_iterator		= list_const_iterator<T>;
 protected:
-    static Alloc       allocator;          /* 数据分配器 */
-    link_node_ptr      head_node;          /* 头结点 */
-    size_type          node_size;          /* 数量 */
+    static Allocator        allocator;          /* 数据分配器 */
+    link_node_ptr           head_node;          /* 头结点 */
+    size_type               node_size;          /* 数量 */
 private:
     static link_node_ptr get_node() {
         return allocator.allocate(1);
@@ -517,7 +519,7 @@ void swap(list<T, Alloc> &first, list<T, Alloc> &second) noexcept {
 }
 
 template<typename T, typename Alloc>
-Alloc list<T, Alloc>::allocator;
+typename list<T, Alloc>::Allocator list<T, Alloc>::allocator;
 
 }
 #endif
