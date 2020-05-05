@@ -1,6 +1,7 @@
 #ifndef M_STACK_HPP
 #define M_STACK_HPP
 #include "mdeque.hpp"
+#include <utility>
 
 namespace sx {
 
@@ -17,9 +18,9 @@ void swap(stack<T, Container> &, stack<T, Container> &) noexcept;
 
 template<typename T, typename Container = deque<T>>
 class stack {
-    friend void swap(stack<T, Container> &, stack<T, Container> &) noexcept;
-    friend bool operator==(stack<T, Container> const &, stack<T, Container> const &) noexcept;
-    friend bool operator!=(stack<T, Container> const &, stack<T, Container> const &) noexcept;
+    friend void swap<T, Container>(stack<T, Container> &, stack<T, Container> &) noexcept;
+    friend bool operator==<T, Container>(stack<T, Container> const &, stack<T, Container> const &) noexcept;
+    friend bool operator!=<T, Container>(stack<T, Container> const &, stack<T, Container> const &) noexcept;
 public:
     using value_type        = typename Container::value_type;
     using pointer           = typename Container::pointer;
