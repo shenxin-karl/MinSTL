@@ -216,7 +216,7 @@ private:
 				cur_obj = next_obj;
 			}
 			cur_obj->free_list_link = *my_free_list;
-			*my_free_list = cur_obj;
+			*my_free_list = start_obj;
 		}
 		return result;
 	}
@@ -299,8 +299,8 @@ public:
 
 		Obj *volatile *my_free_list = free_list + FOUND_INDEX(bytes);
 		Obj *obj_ptr = reinterpret_cast<Obj *>(ptr);
-		obj_ptr->free_list_link = *free_list;
-		*free_list = obj_ptr;
+		obj_ptr->free_list_link = *my_free_list;
+		*my_free_list = obj_ptr;
 	}
 };
 
