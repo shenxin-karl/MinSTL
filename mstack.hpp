@@ -74,17 +74,17 @@ public:
     }
 };
 
-template<typename T, typename Container>
+template<typename T, typename Container> inline
 bool operator==(stack<T, Container> const &first, stack<T, Container> const &second) noexcept {
     return first.container == second.container;
 }
 
-template<typename T, typename Container>
+template<typename T, typename Container> inline
 bool operator!=(stack<T, Container> const &first, stack<T, Container> const &second) noexcept {
     return first.container != second.container;
 }
 
-template<typename T, typename Container>
+template<typename T, typename Container> inline
 void swap(stack<T, Container> &first, stack<T, Container> &second) noexcept {
     using std::swap;
     swap(first.container, second.container);
