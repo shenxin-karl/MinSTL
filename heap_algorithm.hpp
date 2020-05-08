@@ -1,4 +1,4 @@
-#ifndef M_HEAP_ALGORITHM_HPP
+ï»¿#ifndef M_HEAP_ALGORITHM_HPP
 #define M_HEAP_ALGORITHM_HPP
 #include "miterator.hpp"
 #include <utility>
@@ -63,7 +63,7 @@ void push_heap_aux(RandomIterator begin, RandomIterator end, Compare comp, sx::r
 	distance_type parent_index = (hole_index - 1) / 2;
 	value_type value = std::move(begin[hole_index]);
 	while (hole_index >= 1) {
-		/* Èç¹ûÂú×ãÌõ¼ş, ¸¸½áµãÒÆ¶¯ÏÂÀ´ */
+		/* å¦‚æœæ»¡è¶³æ¡ä»¶, çˆ¶ç»“ç‚¹ç§»åŠ¨ä¸‹æ¥ */
 		if (comp(value, begin[parent_index])) {
 			begin[hole_index] = std::move(begin[parent_index]);
 			hole_index = parent_index;
@@ -155,7 +155,7 @@ void make_heap_aux(RandomIterator first, RandomIterator end, Compare comp, sx::r
 	using difference_type = typename iterator_traits<RandomIterator>::difference_type;
 
 	difference_type len = sx::distance(first, end);
-	difference_type hole_index = (len - 1) / 2;			/* ÕÒµ½µÚÒ»¸ö·ÇÒ¶×Ó½áµã */
+	difference_type hole_index = (len - 1) / 2;			/* æ‰¾åˆ°ç¬¬ä¸€ä¸ªéå¶å­ç»“ç‚¹ */
 	while (hole_index >= 0) {
 		sx::adjust_heap(first, hole_index, len, comp);
 		--hole_index;
