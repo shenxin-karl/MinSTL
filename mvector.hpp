@@ -8,8 +8,38 @@
 
 namespace sx {
 
+class vector_empty : public std::exception {
+};
+
+template<typename T, typename Alloc> class vector;
+
+template<typename T, typename Alloc>
+bool operator==(vector<T, Alloc> const &, vector<T, Alloc> const &) noexcept;
+
+template<typename T, typename Alloc>
+bool operator!=(vector<T, Alloc> const &, vector<T, Alloc> const &) noexcept;
+
+template<typename T, typename Alloc>
+bool operator<(vector<T, Alloc> const &, vector<T, Alloc> const &) noexcept;
+
+template<typename T, typename Alloc>
+bool operator<=(vector<T, Alloc> const &, vector<T, Alloc> const &) noexcept;
+
+template<typename T, typename Alloc>
+bool operator>(vector<T, Alloc> const &, vector<T, Alloc> const &) noexcept;
+
+template<typename T, typename Alloc>
+bool operator>=(vector<T, Alloc> const &, vector<T, Alloc> const &) noexcept;
+
 template<typename T, typename Alloc = sx::allocator<T>>
 class vector {
+	friend bool operator==(vector<T, Alloc> const &, vector<T, Alloc> const &) noexcept;
+	friend bool operator!=(vector<T, Alloc> const &, vector<T, Alloc> const &) noexcept;
+	friend bool operator<(vector<T, Alloc> const &, vector<T, Alloc> const &) noexcept;
+	friend bool operator<=(vector<T, Alloc> const &, vector<T, Alloc> const &) noexcept;
+	friend bool operator>(vector<T, Alloc> const &, vector<T, Alloc> const &) noexcept;
+	friend bool operator>=(vector<T, Alloc> const &, vector<T, Alloc> const &) noexcept;
+public:
 	using value_type 		= T;
 	using size_type 		= std::size_t;
 	using difference_type 	= std::ptrdiff_t;
@@ -30,7 +60,7 @@ public:
 	vector(vector const &other) {
 		start = alloc_and_fill(other.begin(), other.end());
 		finish = start + other.size();
-		end_of_store = start + other.capacity();
+		end_of_store = start + other.size();
 	}
 
 	vector(vector &&other) 
@@ -38,16 +68,15 @@ public:
 		other.start = other.finish = other.end_of_store = nullptr;
 	}
 
-	vector &operator=(vector other) {
-		swap(*this, other);
+	vector &operator=(vector const &other) {
+		vector tmp = other;
+		swap(*this, tmp);
 		return *this;
 	}
 
 	vector &operator=(vector &&other) {
-		start = other.start;
-		finish = other.finish;
-		end_of_store = other.end_of_store;
-		other.start = other.finish = other.end_of_store = nullptr;
+		vector tmp = std::move(other);
+		swap(*this, tmp);
 		return *this;
 	}
 
@@ -99,12 +128,12 @@ private:
 	}
 
 	template<typename Func1, typename Func2>
-	static void __insert_aux(Func1 &func1, Func2 &func2, std::true_type) {
+	static void conditional_execute(Func1 &func1, Func2 &func2, std::true_type) {
 		func1();
 	}
 
 	template<typename Func1, typename Func2>
-	static void __insert_aux(Func1 &func1, Func2 &func2, std::false_type) {
+	static void conditional_execute(Func1 &func1, Func2 &func2, std::false_type) {
 		func2();
 	}
 
@@ -120,16 +149,16 @@ private:
 
 			allocator.construct(finish, *(finish - 1));
 			++finish;
-			std::copy_backward(position, finish - 2, position + 1);
+			std::copy_backward(position, finish - 2, finish - 1);
 			construct_func(position);
 			return position;
 		}
 
-		const size_type old_size = size();
+		const size_type old_size = capacity();
 		const size_type new_size = old_size != 0 ? old_size * 2 : 1;
 		iterator new_start = allocator.allocate(new_size);
 		iterator new_finish = new_start;
-		iterator result = new_start;
+		iterator result;
 
 		/* 使用移动构造, 移动元素 */
 		auto has_noexcept_move_construct = [&]()->void {
@@ -151,14 +180,14 @@ private:
 				++new_finish;
 				new_finish = sx::uninitialized_copy(position, finish, new_finish);
 			} catch(...) {
-				for (iterator beg = new_start; beg != result; ++beg)
+				for (iterator beg = new_start; beg != new_finish; ++beg)
 					allocator.destroy(beg);
 				allocator.deallocate(new_start, new_size);
 				throw;
 			}
 		};
-		__insert_aux(has_noexcept_move_construct, 
-					 has_not_noexcept_move_construct, has_noexcept_move_construct_t<T>{});
+		conditional_execute(has_noexcept_move_construct, 
+					 		has_not_noexcept_move_construct, has_noexcept_move_construct_t<T>{});
 		allocator.destroy(start, finish);
 		deallocate();
 		start = new_start;
@@ -203,28 +232,35 @@ public:
 		return finish;
 	}
 
-	value_type &front() {
+	reference front() {
 		return *start;
 	}
 
-	value_type &front() const {
+	const_reference front() const {
 		return *start;
 	}
 
-	value_type &back() {
+	reference back() {
 		return *(finish - 1);
 	}
 
-	value_type &back() const {
+	const_reference back() const {
 		return *(finish - 1);
+	}
+
+	void pop_back() {
+		if (empty())
+			throw vector_empty();
+
+		--finish;
+		allocator.destroy(finish);
 	}
 
 	iterator insert(iterator position, value_type const &value) {
 		auto construct_func = [&](iterator pos) {
 			allocator.construct(pos, value);
 		};
-		iterator result = insert_aux(position, construct_func);
-		return ++result;
+		return insert_aux(position, construct_func);
 	}
 
 	template<typename... Args>
@@ -232,8 +268,7 @@ public:
 		auto construct_func = [&](iterator pos) {
 			allocator.construct(pos, std::forward<Args>(args)...);
 		};
-		iterator result = insert_aux(position, construct_func);
-		return ++result;
+		return insert_aux(position, construct_func);
 	}
 
 	void push_back(value_type const &value) {
@@ -251,14 +286,15 @@ public:
 
 	iterator insert(iterator position, size_type size, value_type const &value) {
 		if (size == 0)
-			return ++position;
+			return position;
 
 		size_type store_left = end_of_store - finish;
+		/* 不同开辟新空间 */
 		if (size <= store_left) {
 			size_type element_after = finish - position;
 			if (element_after > size) {
 				sx::uninitialized_copy(finish - size, finish, finish);
-				std::copy_backward(position, finish - size, position + size);
+				std::copy_backward(position, finish - size, finish);
 				std::fill_n(position, size, value);
 			} else {
 				sx::uninitialized_copy(position, finish, finish + (size - element_after));
@@ -268,11 +304,11 @@ public:
 			finish += size;
 			return position + size + 1;
 		} else {
-			size_type old_size = this->size();
+			size_type old_size = capacity();
 			size_type new_size = old_size != 0 ? std::max(old_size * 2, size + old_size) : size;
 			iterator new_start = allocator.allocate(new_size);
 			iterator new_finish = new_start;
-			iterator ret = new_start;
+			iterator ret;
 			
 			/* 使用移动构造, 移动元素 */
 			auto has_noexcept_move_construct = [&]()->void {
@@ -292,14 +328,14 @@ public:
 					ret = new_finish;
 					new_finish = sx::uninitialized_copy(position, finish, new_finish);
 				} catch(...) {
-					for (iterator beg = new_start; beg != ret; ++beg) 
+					for (iterator beg = new_start; beg != new_finish; ++beg) 
 						allocator.destroy(beg);
 					allocator.deallocate(new_start, new_size);
 					throw;
 				}
 			};
-			__insert_aux(has_noexcept_move_construct, has_noexcept_move_construct,
-						 has_noexcept_move_construct_t<T>{});
+			conditional_execute(has_noexcept_move_construct, has_noexcept_move_construct,
+						 		has_noexcept_move_construct_t<T>{});
 			allocator.destroy(start, finish);
 			deallocate();
 			start = new_start;
@@ -322,7 +358,7 @@ public:
 	iterator erase(iterator begin, iterator end) {
 		iterator iter = std::copy(end, finish, begin);
 		allocator.destroy(iter, finish);
-		finish = finish - (end - begin);
+		finish = iter;
 		return begin;
 	}
 
@@ -348,31 +384,156 @@ public:
 		erase(begin(), end());
 	}
 
-	value_type &operator[](std::size_t index) {
+	reference operator[](std::size_t index) {
 		return start[index];
 	}
 
-	const value_type &operator[](std::size_t index) const {
+	const_reference operator[](std::size_t index) const {
 		return start[index];
 	}
 
-	value_type &at(std::size_t index) {
+	reference at(std::size_t index) {
 		if (index > size())
 			throw std::out_of_range("invalid index");
 
 		return (*this)[index];
 	}
 
-	value_type const &at(std::size_t index) const {
+	const_reference at(std::size_t index) const {
 		if (index > size())
 			throw std::out_of_range("invalid index");
 
 		return (*this)[index];
+	}
+
+	void reserve(size_type reserve_size) {
+		if (reserve_size < capacity())
+			return;
+
+		iterator new_start = allocator.allocate(reserve_size);
+		iterator new_finish = new_start;
+		
+		/* 移动构造移动元素 */
+		auto has_noexcept_move_construct = [&]()->void {
+			new_finish = sx::uninitialized_copy(std::make_move_iterator(start), 
+												std::make_move_iterator(finish), new_start);
+		};
+
+		/* 拷贝构造移动元素 */
+		auto has_not_noexcept_move_construct = [&]()->void {
+			try {
+				new_finish = sx::uninitialized_copy(start, finish, new_start);
+			} catch(...) {
+				allocator.deallocate(new_start, reserve_size);
+				throw;
+			}
+		};
+		conditional_execute(has_noexcept_move_construct, has_not_noexcept_move_construct,
+							sx::has_noexcept_move_construct_t<value_type>{});
+		allocator.deallocate(start, capacity());
+		start = new_start;
+		finish = new_finish;
+		end_of_store = start + reserve_size;
+	}
+
+
+	void resize(size_type size, value_type const &value = value_type{}) {
+		if (size == this->size())
+			return;
+
+		/* 新大小缩小空间 */
+		if (size < this->size()) {
+			allocator.destroy(start + size, finish);
+			finish = start + size;
+		
+		/* 增加空间 */
+		} else {
+			const size_type old_size = capacity();
+			if (size > capacity()) {
+				const size_type new_size = std::max(2 * old_size, old_size + size);
+				reserve(new_size);
+			}
+			finish = sx::uninitialized_fill_n(start + old_size, size - old_size, value);
+		}
 	}
 };
 
+
 template<typename T, typename Alloc>
 Alloc vector<T, Alloc>::allocator;
+
+
+template<typename T, typename Alloc>
+bool operator==(vector<T, Alloc> const &first, vector<T, Alloc> const &second) noexcept {
+	using const_iterator = typename vector<T, Alloc>::const_iterator;
+	const_iterator begin1 = first.cbegin();
+	const_iterator begin2 = second.cbegin();
+	const_iterator end1 = first.cend();
+	const_iterator end2 = second.cend();
+
+	for (; begin1 != end1 && begin2 != end2; ++begin1, ++begin2) {
+		if (*begin1 != *begin2)
+			return false;
+	}
+
+	if (first.size() > second.size())
+		return true;
+	else
+		return false;
+}
+
+template<typename T, typename Alloc>
+bool operator!=(vector<T, Alloc> const &first, vector<T, Alloc> const &second) noexcept {
+	return !(first == second);
+}
+
+template<typename T, typename Alloc>
+bool operator<(vector<T, Alloc> const &first, vector<T, Alloc> const &second) noexcept {
+	using const_iterator = typename vector<T, Alloc>::const_iterator;
+	const_iterator begin1 = first.cbegin();
+	const_iterator begin2 = second.cbegin();
+	const_iterator end1 = first.cend();
+	const_iterator end2 = second.cend();
+
+	for (; begin1 != end1 && begin2 != end2; ++begin1, ++begin2) {
+		if (*begin1 < *begin2)
+			return true;
+	}
+
+	if (first.size() < second.size())
+		return true;
+	else
+		return false;
+}
+
+template<typename T, typename Alloc>
+bool operator<=(vector<T, Alloc> const &first, vector<T, Alloc> const &second) noexcept {
+	using const_iterator = typename vector<T, Alloc>::const_iterator;
+	const_iterator begin1 = first.cbegin();
+	const_iterator begin2 = second.cbegin();
+	const_iterator end1 = first.cend();
+	const_iterator end2 = second.cend();
+
+	for (; begin1 != end1 && begin2 != end2; ++begin1, ++begin2) {
+		if (*begin1 <= *begin2)
+			return true;
+	}
+
+	if (first.size() <= second.size())
+		return true;
+	else
+		return false;
+}
+
+template<typename T, typename Alloc>
+bool operator>(vector<T, Alloc> const &first, vector<T, Alloc> const &second) noexcept {
+	return !(first <= second);
+}
+
+template<typename T, typename Alloc>
+bool operator>=(vector<T, Alloc> const &first, vector<T, Alloc> const &second) noexcept {
+	return !(first < second);
+}
 
 }
 
