@@ -1,4 +1,4 @@
-#ifndef DEFAULT_ALLOC_TEMPLATE_HPP
+﻿#ifndef DEFAULT_ALLOC_TEMPLATE_HPP
 #define DEFAULT_ALLOC_TEMPLATE_HPP
 #include <cstddef>
 #include <cstdlib>
@@ -173,18 +173,18 @@ constexpr std::size_t ALIGN = 8;
 constexpr std::size_t MAX_BYTES = 128;
 constexpr std::size_t NFREELISTS = MAX_BYTES / ALIGN;
 
-template<bool threads> class default_alloc_template;
+template<bool threads> class __default_alloc_template;
 
-union Obj {
-	union Obj 	*free_list_link;
+union __Obj {
+	union __Obj 	*free_list_link;
 	char 		 char_client_data[1];
 };
 
 
 template<bool threads>
-class default_alloc_template {
+class __default_alloc_template {
 private:
-	static Obj  		* volatile free_list[NFREELISTS];	/* 空闲链表数组 */
+	static __Obj  		* volatile free_list[NFREELISTS];	/* 空闲链表数组 */
 	static char 		*start_free;						/* 内存池开始位置 */
 	static char 		*end_free;							/* 内存池结束位置 */
 	static std::size_t	 heap_size;							/* 空闲块数量 */
@@ -206,10 +206,10 @@ private:
 		void *result = static_cast<void *>(chunk);
 
 		if (nobjs > 1) {
-			Obj * volatile *my_free_list = free_list + FOUND_INDEX(bytes);
-			Obj *cur_obj = reinterpret_cast<Obj *>(chunk + bytes);
-			Obj *start_obj = cur_obj;
-			Obj *next_obj;
+			__Obj * volatile *my_free_list = free_list + FOUND_INDEX(bytes);
+			__Obj *cur_obj = reinterpret_cast<__Obj *>(chunk + bytes);
+			__Obj *start_obj = cur_obj;
+			__Obj *next_obj;
 			for (int i = 1; i < nobjs; ++i) {
 				next_obj = cur_obj + 1;
 				cur_obj->free_list_link = next_obj;
@@ -244,16 +244,16 @@ private:
 
 			/* 如果内存池中还有剩余空间则加入到空闲链表中 */
 			if (byte_left > 0) {
-				Obj * volatile *my_free_list = free_list + FOUND_INDEX(byte_left);
-				Obj *obj_ptr = reinterpret_cast<Obj *>(start_free);
+				__Obj * volatile *my_free_list = free_list + FOUND_INDEX(byte_left);
+				__Obj *obj_ptr = reinterpret_cast<__Obj *>(start_free);
 				obj_ptr->free_list_link = *my_free_list;
 				*my_free_list = obj_ptr;
 			}
 
 			start_free = static_cast<char *>(std::malloc(byte_to_get));
 			if (start_free == nullptr) {
-				Obj *volatile *my_free_list;
-				Obj *ptr;
+				__Obj *volatile *my_free_list;
+				__Obj *ptr;
 				for (std::size_t i = bytes; i < MAX_BYTES; i += ALIGN) {
 					my_free_list = free_list + FOUND_INDEX(i);
 					ptr = *my_free_list;
@@ -279,8 +279,8 @@ public:
 		if (bytes > MAX_BYTES)
 			return malloc_alloc::allocate(bytes);
 		
-		Obj * volatile *my_free_list = free_list + FOUND_INDEX(bytes);
-		Obj *result = *my_free_list;
+		__Obj * volatile *my_free_list = free_list + FOUND_INDEX(bytes);
+		__Obj *result = *my_free_list;
 		if (result == nullptr)
 			return refill(ROUND_UP(bytes));
 
@@ -297,8 +297,8 @@ public:
 			return;
 		}
 
-		Obj *volatile *my_free_list = free_list + FOUND_INDEX(bytes);
-		Obj *obj_ptr = reinterpret_cast<Obj *>(ptr);
+		__Obj *volatile *my_free_list = free_list + FOUND_INDEX(bytes);
+		__Obj *obj_ptr = reinterpret_cast<__Obj *>(ptr);
 		obj_ptr->free_list_link = *my_free_list;
 		*my_free_list = obj_ptr;
 	}
@@ -306,16 +306,16 @@ public:
 
 
 template<bool threads>
-Obj * volatile default_alloc_template<threads>::free_list[NFREELISTS] = { nullptr };
+__Obj * volatile __default_alloc_template<threads>::free_list[NFREELISTS] = { nullptr };
 
 template<bool threads>
-char *default_alloc_template<threads>::start_free = nullptr;
+char *__default_alloc_template<threads>::start_free = nullptr;
 
 template<bool threads>
-char *default_alloc_template<threads>::end_free = nullptr;
+char *__default_alloc_template<threads>::end_free = nullptr;
 
 template<bool threads>
-std::size_t default_alloc_template<threads>::heap_size = 0;
+std::size_t __default_alloc_template<threads>::heap_size = 0;
 
 } //namespace sx
 #endif
