@@ -1,4 +1,4 @@
-#ifndef M_VECTOR_HPP
+﻿#ifndef M_VECTOR_HPP
 #define M_VECTOR_HPP
 #include "mallocator.hpp"
 #include "miterator.hpp"
@@ -71,7 +71,7 @@ public:
 	vector &operator=(vector const &other) {
 		vector tmp = other;
 		swap(*this, tmp);
-		return *this;
+		return *this; 
 	}
 
 	vector &operator=(vector &&other) {
@@ -90,7 +90,8 @@ public:
 		finish = end_of_store = start + list.size();
 	}
 
-	template<typename InputIterator>
+	template<typename InputIterator, 
+			 typename = std::enable_if_t<sx::is_input_iterator_v<InputIterator>>>
 	vector(InputIterator first, InputIterator end) {
 		difference_type distance = sx::distance(first, end);
 		start = allocator.allocate(distance);
