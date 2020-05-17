@@ -1,4 +1,4 @@
-#ifndef M_DEQUE_HPP
+﻿#ifndef M_DEQUE_HPP
 #define M_DEQUE_HPP
 #include "mallocator.hpp"
 #include "miterator.hpp"
@@ -7,43 +7,41 @@
 namespace sx {
 
 /* 获得 deque 缓冲区的大小 */
-constexpr inline std::size_t deque_buf_size(std::size_t n, std::size_t sz) noexcept {
+constexpr inline std::size_t __deque_buf_size(std::size_t n, std::size_t sz) noexcept {
     return n != 0 ? n : (sz < 512 ? 512 / sz : 1);
 }
 
 template<typename T, typename Alloc = sx::allocator<T>> class deque;
-template<typename T> class deque_const_iterator;
+template<typename T, typename Ptr, typename Ref> class __deque_iterator;
 template<typename T, typename Alloc> void swap(deque<T, Alloc> &, deque<T, Alloc> &) noexcept;
 
-template<typename T>
-class deque_iterator {
-	template<typename T, typename Alloc>
+template<typename T, typename Ptr, typename Ref>
+class __deque_iterator {
+	template<typename Type, typename Allocator>
 	friend class deque;
-
-    friend class deque_const_iterator<T>;
 public:
     using value_type            = T;
-    using pointer               = T *;
-    using reference             = T &;
-    using const_pointer         = T const *;
-    using const_reference       = T const &;
+    using pointer               = Ptr;
+    using reference             = Ref;
     using difference_type       = std::ptrdiff_t;
     using size_type             = std::size_t;
     using iterator_category     = sx::random_access_iterator_tag;
     using map_pointer           = T **;
-private:
+public:
     pointer         cur;        /* 当前缓存区中指向的元素 */
     pointer         first;      /* 当前缓冲区的头 */
     pointer         end;        /* 当前缓存区的尾 */
     map_pointer     node;       /* 指向管控中心 */
 public:
-	deque_iterator() : cur(nullptr), first(nullptr), end(nullptr), node(nullptr) {}
-	deque_iterator(deque_iterator const &) = default;
-	deque_iterator &operator=(deque_iterator const &) = default;
-	~deque_iterator() = default;
+	__deque_iterator() : cur(nullptr), first(nullptr), end(nullptr), node(nullptr) {}
+	__deque_iterator(__deque_iterator const &) = default;
+	__deque_iterator &operator=(__deque_iterator const &) = default;
+	~__deque_iterator() = default;
+	__deque_iterator(pointer cur, pointer first, pointer end, map_pointer node) 
+		: cur(cur), first(first), end(end), node(node) {}
 private:
     static difference_type buffer_size() noexcept {
-        return sx::deque_buf_size(0, sizeof(T));
+        return sx::__deque_buf_size(0, sizeof(T));
     }
 
     void set_node(map_pointer new_node) noexcept {
@@ -61,16 +59,16 @@ public:
     }
 
     reference operator[](int index) {
-        deque_iterator tmp = *this;
+        __deque_iterator tmp = *this;
         tmp += index;
         return *tmp;
     }
 
-    difference_type operator-(deque_iterator const &other) const noexcept {
+    difference_type operator-(__deque_iterator const &other) const noexcept {
         return buffer_size() * (node - other.node - 1) + (cur - first) + (other.end - other.cur);
     }
 
-    deque_iterator &operator++() noexcept {
+    __deque_iterator &operator++() noexcept {
         ++cur;
         if (cur == end) {
             set_node(node + 1);
@@ -79,13 +77,13 @@ public:
         return *this;
     }
 
-    deque_iterator operator++(int) noexcept {
-        deque_iterator ret = *this;
+    __deque_iterator operator++(int) noexcept {
+        __deque_iterator ret = *this;
         ++(*this);
         return ret;
     }
 
-    deque_iterator &operator--() noexcept {
+    __deque_iterator &operator--() noexcept {
         if (cur == first) {
             set_node(node - 1);
             cur = end;
@@ -94,13 +92,13 @@ public:
         return *this;
     }
 
-    deque_iterator operator--(int) noexcept {
-        deque_iterator ret = *this;
+    __deque_iterator operator--(int) noexcept {
+        __deque_iterator ret = *this;
         --(*this);
         return ret;
     }
 
-    deque_iterator &operator+=(int n) {
+    __deque_iterator &operator+=(int n) {
         difference_type offset = n + (end - cur);       /* 抽象成从 first 开始移动 */
         if (offset >= 0 && offset < buffer_size()) 
             cur += n;
@@ -114,199 +112,48 @@ public:
         return *this;
     }
 
-    deque_iterator operator+(int n) const noexcept {
-        deque_iterator ret = *this;
+    __deque_iterator operator+(int n) const noexcept {
+        __deque_iterator ret = *this;
         ret += n;
         return ret;
     }
 
-    deque_iterator &operator-=(int n) noexcept {
+    __deque_iterator &operator-=(int n) noexcept {
         *this += -n;
         return *this;
     }
 
-    deque_iterator operator-(int n) const noexcept {
-        deque_iterator ret = *this;
+    __deque_iterator operator-(int n) const noexcept {
+        __deque_iterator ret = *this;
         ret += -n;
         return ret;
     }
 
-    friend bool operator==(deque_iterator const &first, deque_iterator const &second) noexcept {
+    friend bool operator==(__deque_iterator const &first, __deque_iterator const &second) noexcept {
         return first.cur == second.cur;
     }
 
-    friend bool operator!=(deque_iterator const &first, deque_iterator const &second) noexcept {
+    friend bool operator!=(__deque_iterator const &first, __deque_iterator const &second) noexcept {
         return !(first == second);
     }
 
-    friend bool operator>(deque_iterator const &first, deque_iterator const &second) noexcept {
+    friend bool operator>(__deque_iterator const &first, __deque_iterator const &second) noexcept {
         return first.node == second.node ? first.cur > second.cur : first.node > second.node;
     }
 
-    friend bool operator<(deque_iterator const &first, deque_iterator const &second) noexcept {
+    friend bool operator<(__deque_iterator const &first, __deque_iterator const &second) noexcept {
         return first != second && !(first > second);
     }
 
-    friend bool operator>=(deque_iterator const &first, deque_iterator const &second) noexcept {
+    friend bool operator>=(__deque_iterator const &first, __deque_iterator const &second) noexcept {
         return first == second || first > second;
     }
 
-    friend bool operator<=(deque_iterator const &first, deque_iterator const &second) noexcept {
+    friend bool operator<=(__deque_iterator const &first, __deque_iterator const &second) noexcept {
         return first == second || first < second;
     }
 };
 
-
-template<typename T>
-class deque_const_iterator {
-	template<typename T, typename Alloc>
-	friend class deque;
-public:
-    using value_type            = T;
-    using pointer               = T *;
-    using reference             = T &;
-    using const_pointer         = T const *;
-    using const_reference       = T const &;
-    using difference_type       = std::ptrdiff_t;
-    using size_type             = std::size_t;
-    using iterator_category     = sx::random_access_iterator_tag;
-    using map_pointer           = T **;
-private:
-    pointer         cur;        /* 当前缓存区中指向的元素 */
-    pointer         first;      /* 当前缓冲区的头 */
-    pointer         end;        /* 当前缓存区的尾 */
-    map_pointer     node;       /* 指向管控中心 */
-public:
-	deque_const_iterator() : cur(nullptr), first(nullptr), end(nullptr), node(nullptr) {}
-
-	deque_const_iterator(deque_const_iterator const &) = default;
-
-    deque_const_iterator(deque_iterator<T> const &other) 
-    : cur(other.cur), first(other.first), end(other.end), node(other.node) {}
-
-	deque_const_iterator &operator=(deque_const_iterator const &) = default;
-
-	deque_const_iterator &operator=(deque_iterator<T> const &other) {
-		deque_const_iterator tmp = other;
-		*this = tmp;
-		return tmp;
-	}
-    
-	~deque_const_iterator() = default;
-private:
-    static difference_type buffer_size() noexcept {
-        return sx::deque_buf_size(0, sizeof(T));
-    }
-
-    void set_node(map_pointer new_node) noexcept {
-        node = new_node;
-        first = *new_node;
-        end = first + buffer_size();
-    }
-public:
-	const_pointer operator->() const noexcept {
-		return &(this->operator*());
-	}
-
-	const_reference operator*() const {
-		return *cur;
-	}
-
-    const_reference operator[](int index) const {
-        deque_const_iterator tmp = *this;
-        tmp += index;
-        return *tmp;
-    }
-
-    difference_type operator-(deque_const_iterator const &other) const noexcept {
-        return buffer_size() * (node - other.node - 1) + (cur - first) + (other.end - other.cur);
-    }
-
-    deque_const_iterator &operator++() noexcept {
-        ++cur;
-        if (cur == end) {
-            set_node(node + 1);
-            cur = first;
-        }
-        return *this;
-    }
-
-    deque_const_iterator operator++(int) noexcept {
-        deque_const_iterator ret = *this;
-        ++(*this);
-        return ret;
-    }
-
-    deque_const_iterator &operator--() noexcept {
-        if (cur == first) {
-            set_node(node - 1);
-            cur = end;
-        }
-        --cur;
-        return *this;
-    }
-
-    deque_const_iterator operator--(int) noexcept {
-        deque_const_iterator ret = *this;
-        --(*this);
-        return ret;
-    }
-
-    deque_const_iterator &operator+=(int n) {
-        difference_type offset = n + (end - cur);       /* 抽象成从 first 开始移动 */
-        if (offset >= 0 && offset < buffer_size()) 
-            cur += n;
-        else {
-            difference_type node_offset;
-            node_offset = offset > 0 ? offset / buffer_size() 
-                         : -difference_type((-offset - 1) / buffer_size()) - 1;
-            set_node(node + node_offset);
-            cur = first + (offset - node_offset * buffer_size()); 
-        }
-        return *this;
-    }
-
-    deque_const_iterator operator+(int n) const noexcept {
-        deque_const_iterator ret = *this;
-        ret += n;
-        return ret;
-    }
-
-    deque_const_iterator &operator-=(int n) noexcept {
-        *this += -n;
-        return *this;
-    }
-
-    deque_const_iterator operator-(int n) const noexcept {
-        deque_const_iterator ret = *this;
-        ret += -n;
-        return ret;
-    }
-
-    friend bool operator==(deque_const_iterator const &first, deque_const_iterator const &second) noexcept {
-        return first.cur == second.cur;
-    }
-
-    friend bool operator!=(deque_const_iterator const &first, deque_const_iterator const &second) noexcept {
-        return !(first == second);
-    }
-
-    friend bool operator>(deque_const_iterator const &first, deque_const_iterator const &second) noexcept {
-        return first.node == second.node ? first.cur > second.cur : first.node > second.node;
-    }
-
-    friend bool operator<(deque_const_iterator const &first, deque_const_iterator const &second) noexcept {
-        return first != second && !(first > second);
-    }
-
-    friend bool operator>=(deque_const_iterator const &first, deque_const_iterator const &second) noexcept {
-        return first == second || first > second;
-    }
-
-    friend bool operator<=(deque_const_iterator const &first, deque_const_iterator const &second) noexcept {
-        return first == second || first < second;
-    }
-};
 
 
 template<typename T, typename Alloc>
@@ -320,8 +167,8 @@ public:
     using const_reference   = T const &;
     using difference_type   = std::ptrdiff_t;
     using size_type         = std::size_t;
-    using iterator          = deque_iterator<T>;
-	using const_iterator	= deque_const_iterator<T>;
+    using iterator          = __deque_iterator<T, T *, T &>;
+	using const_iterator	= __deque_iterator<T, T const *, T const &>;
 protected:
     using map_pointer       = T **;
     using Map_Alloc         = decltype(sx::transform_alloator_type<T, pointer>(Alloc{}));
@@ -364,7 +211,7 @@ public:
 	}
 
 	template<typename InputIterator, 
-	typename = std::enable_if_t<decltype(typename sx::iterator_traits<InputIterator>::iterator_category, std::true_type)::value>>
+			 typename = std::enable_if_t<sx::is_input_iterator_v<InputIterator>>>
 	deque(InputIterator first, InputIterator end) {
 		alloc_and_fill(first, end);
 	}
@@ -382,7 +229,7 @@ private:
 
 	/* 获得缓冲区的大小 */
     static size_type buffer_size() noexcept {
-        return deque_buf_size(0, sizeof(T));
+        return __deque_buf_size(0, sizeof(T));
     }
 
     /* 创建中控区和分配结点, 并设置好 start 和 finish 迭代器的位置 */
@@ -520,7 +367,7 @@ private:
 
 	/* 空初始化 */
 	void empty_initialze() {
-		create_map_and_nodes(deque_buf_size(0, sizeof(T)));
+		create_map_and_nodes(__deque_buf_size(0, sizeof(T)));
 		finish = start = start + (finish - start) / 2;
 	}
 
@@ -583,19 +430,19 @@ public:
     }
 
 	const_iterator begin() const noexcept {
-		return start;
+		return cbegin();
 	}
 
 	const_iterator end() const noexcept {
-		return finish;
+		return cend();
 	}
 
 	const_iterator cbegin() const noexcept {
-		return start;
+		return const_iterator(start.cur, start.first, start.end, start.node);
 	}
 
 	const_iterator cend() const noexcept {
-		return finish;
+		return const_iterator(finish.cur, finish.first, finish.end, finish.node);
 	}
 
     size_type size() const noexcept {
