@@ -1,4 +1,4 @@
-#ifndef M_LIST_HPP
+﻿#ifndef M_LIST_HPP
 #define M_LIST_HPP
 #include "mallocator.hpp"
 #include "miterator.hpp"
@@ -10,7 +10,7 @@ class list_empty : public std::exception {
 };
 
 template<typename T>
-struct link_node;
+struct __link_node;
 
 template<typename T, typename Alloc = sx::allocator<T>>
 class list;
@@ -19,42 +19,40 @@ template<typename T, typename Alloc>
 void swap(list<T, Alloc> &first, list<T, Alloc> &second) noexcept;
 
 template<typename T>
-struct link_node {
-    link_node   *prev;
-    link_node   *next;
-    T            data;
+struct __link_node {
+    __link_node   *prev;
+    __link_node   *next;
+    T			   data;
 public:
-    link_node(T const &element) : data(element) {}
-    link_node(T &&element) : data(std::move(element)) {}
+    __link_node(T const &element) : data(element) {}
+    __link_node(T &&element) : data(std::move(element)) {}
 };
 
-template<typename T>
-class list_iterator {
+template<typename T, typename Ptr, typename Ref>
+class __list_iterator {
 public:
 	template<typename T, typename Alloc>
 	friend class list;
     using value_type			= T;
-    using pointer				= T * ;
-    using reference				= T & ;
-    using const_pointer			= T const *;
-    using const_reference		= T const &;
+	using pointer				= Ptr;
+    using reference				= Ref;
     using difference_type		= std::ptrdiff_t;
-    using link_node_ptr			= link_node<T> *;
+    using link_node_ptr			= __link_node<T> *;
     using iterator_category		= sx::bidirectional_iterator_tag;
 private:
     link_node_ptr   node_ptr;
 public:
-    list_iterator() : node_ptr(nullptr) {}
-    list_iterator(link_node_ptr ptr) : node_ptr(ptr) { }
-    list_iterator(list_iterator const &other) = default;
-    list_iterator &operator=(list_iterator const &other) = default;
-    ~list_iterator() = default;
+    __list_iterator() : node_ptr(nullptr) {}
+    __list_iterator(link_node_ptr ptr) : node_ptr(ptr) { }
+    __list_iterator(__list_iterator const &other) = default;
+    __list_iterator &operator=(__list_iterator const &other) = default;
+    ~__list_iterator() = default;
 public:
-    friend bool operator==(list_iterator const &first, list_iterator const &second) {
+    friend bool operator==(__list_iterator const &first, __list_iterator const &second) {
         return first.node_ptr == second.node_ptr;
     }
 
-    friend bool operator!=(list_iterator const &first, list_iterator const &second) {
+    friend bool operator!=(__list_iterator const &first, __list_iterator const &second) {
         return !(first == second);
     }
 
@@ -66,89 +64,27 @@ public:
         return node_ptr->data;
     }
 
-    list_iterator &operator++() {
+    __list_iterator &operator++() {
         node_ptr = node_ptr->next;
         return *this;
     }
 
-    list_iterator operator++(int) {
-        list_iterator ret = *this;
+    __list_iterator operator++(int) {
+        __list_iterator ret = *this;
         ++(*this);
         return ret;
     }
 
-    list_iterator &operator--() {
+    __list_iterator &operator--() {
         node_ptr = node_ptr->prev;
         return *this;
     }
 
-    list_iterator operator--(int) {
-        list_iterator ret = *this;
+    __list_iterator operator--(int) {
+        __list_iterator ret = *this;
         --(*this);
         return ret;
     }
-};
-
-
-template<typename T>
-class list_const_iterator {
-public:
-	template<typename T, typename Alloc>
-	friend class list;
-	using value_type = T;
-	using pointer = T * ;
-	using reference = T & ;
-	using const_pointer = T const *;
-	using const_reference = T const &;
-	using difference_type = std::ptrdiff_t;
-	using link_node_ptr = link_node<T> *;
-	using iterator_category = sx::bidirectional_iterator_tag;
-private:
-	link_node_ptr   node_ptr;
-public:
-	list_const_iterator() : node_ptr(nullptr) {}
-	list_const_iterator(link_node_ptr ptr) : node_ptr(ptr) { }
-	list_const_iterator(list_const_iterator const &other) = default;
-	list_const_iterator &operator=(list_const_iterator const &other) = default;
-	~list_const_iterator() = default;
-public:
-	friend bool operator==(list_const_iterator const &first, list_const_iterator const &second) {
-		return first.node_ptr == second.node_ptr;
-	}
-
-	friend bool operator!=(list_const_iterator const &first, list_const_iterator const &second) {
-		return !(first == second);
-	}
-
-	const_pointer operator->() {
-		return &node_ptr->data;
-	}
-
-	const_reference operator*() {
-		return node_ptr->data;
-	}
-
-	list_const_iterator &operator++() {
-		node_ptr = node_ptr->next;
-		return *this;
-	}
-
-	list_const_iterator operator++(int) {
-		list_const_iterator ret = *this;
-		++(*this);
-		return ret;
-	}
-
-	list_const_iterator &operator--() {
-		node_ptr = node_ptr->prev;
-		return *this;
-	}
-
-	list_const_iterator operator--(int) {
-		list_const_iterator ret = *this;
-		--(*this);
-		return ret;
-	}
 };
 
 template<typename T, typename Alloc>
@@ -156,7 +92,7 @@ class list {
 	template<typename Type, typename AllocType>
 	friend void swap(list<Type, AllocType> &, list<Type, AllocType> &) noexcept;
 
-	using Allocator = decltype(sx::transform_alloator_type<T, link_node<T>>(Alloc{}));
+	using Allocator = decltype(sx::transform_alloator_type<T, __link_node<T>>(Alloc{}));
 public: 
     using value_type            = T;
     using pointer               = T *;
@@ -165,9 +101,9 @@ public:
     using const_reference       = T const &;
     using size_type             = std::size_t;
     using difference_type       = std::ptrdiff_t;
-    using link_node_ptr         = link_node<T> *;
-    using iterator              = list_iterator<T>;
-	using const_iterator		= list_const_iterator<T>;
+    using link_node_ptr         = __link_node<T> *;
+    using iterator              = __list_iterator<T, T *, T &>;
+	using const_iterator		= __list_iterator<T, T const *, T const &>;
 protected:
     static Allocator        allocator;          /* 数据分配器 */
     link_node_ptr           head_node;          /* 头结点 */
@@ -190,7 +126,7 @@ private:
 
     static void destroy_node(link_node_ptr node_ptr) {
         allocator.destroy(node_ptr);
-        allocator.deallocate(node_ptr, sizeof(link_node<T>));
+        allocator.deallocate(node_ptr, sizeof(__link_node<T>));
     }
 
 	void empty_initialized() noexcept {
@@ -202,11 +138,7 @@ private:
 	template<typename InputIterator>
 	void alloc_and_fill(InputIterator begin, InputIterator end) {
         while (begin != end) {
-            link_node_ptr node = create_node(*begin);
-            node->prev = head_node->prev;
-            node->prev->next = node;
-            node->next = head_node;
-            node->next->prev = node;
+            push_back(*begin);
 			++begin;
         }
 	}
@@ -512,14 +444,16 @@ public:
 };
 
 template<typename T, typename Alloc>
+typename list<T, Alloc>::Allocator list<T, Alloc>::allocator;
+
+
+template<typename T, typename Alloc>
 void swap(list<T, Alloc> &first, list<T, Alloc> &second) noexcept {
 	using std::swap;
 	swap(first.head_node, second.head_node);
     swap(first.node_size, second.node_size);
 }
 
-template<typename T, typename Alloc>
-typename list<T, Alloc>::Allocator list<T, Alloc>::allocator;
 
 }
 #endif
