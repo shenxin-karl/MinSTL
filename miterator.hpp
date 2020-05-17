@@ -2,6 +2,7 @@
 #define M_ITERATOR_HPP
 #include <cstddef>
 #include <type_traits>
+#include "miterator.hpp"
 
 namespace sx {
 
@@ -124,7 +125,9 @@ void advance(Iterator &iter, int n)
 }
 
 
-template<typename Iterator>
+#if 0
+template<typename Iterator, 
+		 typename = std::enable_if_t<sx::is_iterator_v<Iterator>>>
 class move_iterator {
 	Iterator iterator;
 public:
@@ -134,12 +137,12 @@ public:
 	move_iterator() = delete;
 	~move_iterator() = default;
 
-	template<typename = std::enable_if_t<decltype(Iterator()++, std::true_type::value)>>
+	template<typename = std::enable_if_t<decltype(Iterator()++, std::true_type)>>
 	move_iterator operator++(int) {
 		return move_iterator(iterator++);
 	}
 
-	template<typename = std::enable_if_t<decltype(++Iterator(), std::true_type::value)>>
+	template<typename = std::enable_if_t<decltype(++Iterator(), std::true_type)>>
 	move_iterator &operator++() {
 		return move_iterator(++iterator);
 	}
@@ -194,6 +197,7 @@ public:
 		return &(*iterator);
 	}
 };
+#endif
 
 
 template<typename T, std::size_t N> constexpr
