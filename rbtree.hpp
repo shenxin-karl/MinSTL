@@ -188,10 +188,11 @@ public:
 	using size_type			= std::size_t;
 	using difference_type	= std::ptrdiff_t;
 	using iterator			= sx::rbtree_iterator<Value, Value *, Value &>;
+	using const_iterator	= sx::rbtree_iterator<Value, Value const *, Value const &>;
 protected:
 	static Allocator	allocator;	/* 分配器 */
 	rbtree_node_base	header;		/* 头结点 */
-	rbtree_node_base    nil;		/* nil 哨兵结点 */
+	rbtree_node_base   *nil;		/* nil 哨兵结点 */
 	size_type			node_size;	/* 结点数量 */
 	Compare				comp;		/* 比较器 */
 protected:
@@ -221,8 +222,10 @@ protected:
 	}
 
 	void empty_initialize() {
+		nil = allocator.allocate(1);
 		header.parent = header.left = header.right = nil_node();
-		nil.color = BLACK;
+		nil->color = BLACK;
+		node_size = 0;
 	}
 
 	bool key_compare(base_ptr first, base_ptr second) const noexcept {
@@ -234,8 +237,16 @@ protected:
 		return static_cast<link_type>(header.parent);
 	}
 
+	const link_type root() const noexcept {
+		return const_cast<const link_type>(const_cast<rbtree *>(this)->root());
+	}
+
 	link_type nil_node() noexcept {
-		return static_cast<link_type>(&nil);
+		return static_cast<link_type>(nil);
+	}
+
+	const link_type nil_node() const noexcept {
+		return const_cast<const link_type>(const_cast<rbtree *>(this)->nil_node());
 	}
 	
 	link_type leftmost() noexcept {
@@ -377,19 +388,216 @@ protected:
 		}
 		root()->color = BLACK;
 	}
+
+	void tranfers(base_ptr node, base_ptr replace) {
+		replace->parent = node->parent;
+		if (node->parent == nil_node())
+			set_root(replace);
+		else if (node == node->parent->left)
+			node->parent->left = replace;
+		else
+			node->parent->right = replace;
+	}
+
+	base_ptr minimun(base_ptr node) {
+		return rbtree_node_base::minimun(node, nil_node());
+	}
+
+	base_ptr maxinum(base_ptr node) {
+		return rbtree_node_base::maximun(node, nil_node());
+	}
+
+	void remove_fixup(base_ptr node) {
+		base_ptr brother;
+		while (node != root() && node->color == BLACK) {
+			if (node == node->parent->left) {
+				brother = node->parent->right;
+				if (brother->color == RED) {
+					brother->color = BLACK;
+					node->parent->color = RED;
+					left_rotate(node->parent);
+					brother = node->parent->right;
+				}
+				if (brother->left->color == BLACK && brother->right->color == BLACK) {
+					brother->color = RED;
+					node = node->parent;
+				} else {
+					if (brother->right->color == BLACK) {
+						brother->left->color = BLACK;
+						brother->color = RED;
+						left_rotate(brother);
+						brother = node->parent->right;
+					}
+					brother->color = node->parent->color;
+					brother->right->color = BLACK;
+					node->parent->color = BLACK;
+					node = root();
+				}
+			} else {
+				brother = node->parent->left;
+				if (brother->color == RED) {
+					brother->color = BLACK;
+					node->parent->color = RED;
+					right_rotate(node->parent);
+					brother = node->parent->left;
+				}
+				if (brother->left->color == BLACK && brother->right->color == BLACK) {
+					brother->color = RED;
+					node = node->parent;
+				} else {
+					if (brother->left->color == BLACK) {
+						brother->right->color = BLACK;
+						brother->color = RED;
+						left_rotate(brother);
+						brother = node->parent->left;
+					}
+					brother->color = node->parent->color;
+					brother->left->color = BLACK;
+					node->parent->color = BLACK;
+					node = root();
+				}
+			}
+		}
+		node->color = BLACK;
+	}
+
+	iterator remove(iterator position) {
+		base_ptr node = position.node;
+		base_ptr origin_node = node;
+		rb_tree_color origin_color = origin_node->color;
+		base_ptr tranfers_node;
+
+		if (node->left == nil_node()) {
+			tranfers_node = node->right;
+			tranfers(node, node->right);
+		}
+		else if (node->right == nil_node()) {
+			tranfers_node = node->left;
+			tranfers(node, node->left);
+		}
+		else {
+			origin_node = minimun(node->right);
+			origin_color = origin_node->color;
+			tranfers_node = origin_node->right;
+			if (origin_node->parent == node)
+				tranfers_node->parent = node;
+			else {
+				tranfers(origin_node, tranfers_node);
+				origin_node->right = node->right;
+				origin_node->right->parent = origin_node;
+			}
+			tranfers(node, origin_node);
+			origin_node->left = node->left;
+			origin_node->color = node->color;
+			origin_node->left->parent = origin_node;
+		}
+
+		if (origin_color == BLACK)
+			remove_fixup(tranfers_node);
+
+		if (node == leftmost()) {
+			iterator new_leftmost = position;
+			++new_leftmost;
+			set_leftmost(new_leftmost.node);
+		}
+		if (node == rightmost()) {
+			iterator new_rightmost = position;
+			--new_rightmost;
+			set_rightmost(new_rightmost.node);
+		}
+		++position;
+		destroy_node(static_cast<link_type>(node));
+		--node_size;
+		return position;
+	}
+
+	void __destroy(base_ptr node) {
+		if (node == nil_node())
+			return;
+		__destroy(node->left);
+		__destroy(node->right);
+		destroy_node(static_cast<link_type>(node));
+	}
+
+	template<bool Is_Unique, typename InputIterator,
+		typename = std::enable_if_t<sx::is_input_iterator_v<InputIterator>>>
+	void alloc_and_fill(InputIterator first, InputIterator last) {
+		try {
+			for (; first != last; ++first) {
+				if (Is_Unique)
+					insert_unique(*first);
+				else
+					insert_equal(*first);
+			}
+		} catch (...) {
+			clear();
+		}
+	}
 public:
-	rbtree() : node_size(0) {
+	rbtree() {
 		empty_initialize();
 	}
 
+	rbtree(rbtree const &other) : rbtree() {
+		alloc_and_fill<false>(other.begin(), other.end());
+	}
 
+	template<bool Is_Unique, typename InputIterator,
+		typename = std::enable_if_t<sx::is_input_iterator_v<InputIterator>>>
+	rbtree(InputIterator first, InputIterator last) : rbtree() {
+		alloc_and_fill<Is_Unique>(first, last);
+	}
+
+	rbtree(rbtree && other) noexcept : rbtree() {
+		swap(*this, other);
+	}
+
+	rbtree &operator=(rbtree const &other) {
+		if (this == &other)
+			return *this;
+		rbtree tmp = other;
+		swap(*this, tmp);
+		return *this;
+	}
+
+	rbtree &operator=(rbtree &&other) noexcept {
+		rbtree tmp = std::move(other);
+		swap(*this, tmp);
+		return *this;
+	}
+
+	~rbtree() {
+		clear();
+		allocator.deallocate(static_cast<link_type>(nil), sizeof(link_type));
+	}
+
+	static const_iterator transform_const_iterator(iterator iter) noexcept {
+		return const_iterator(iter.node, iter.nil, iter.root);
+	}
 public:
-	iterator begin() {
+	iterator begin() noexcept {
 		return iterator(leftmost(), nil_node(), root());
 	}
 
-	iterator end() {
+	iterator end() noexcept {
 		return iterator(nil_node(), nil_node(), root());
+	}
+
+	const_iterator begin() const noexcept {
+		return cbegin();
+	}
+
+	const_iterator end() const noexcept {
+		return cend();
+	}
+
+	const_iterator cbegin() const noexcept {
+		return transform_const_iterator(const_cast<rbtree *>(this)->begin());
+
+	}
+
+	const_iterator cend() const noexcept {
+		return transform_const_iterator(const_cast<rbtree *>(this)->end());
 	}
 
 	iterator insert_unique(Value const &value) {
@@ -408,6 +616,103 @@ public:
 
 	bool empty() const noexcept {
 		return size() == 0;
+	}
+
+	void clear() {
+		__destroy(root());
+		allocator.deallocate(nil_node(), sizeof(link_type));
+		empty_initialize();
+	}
+
+	iterator find(Key const &value) {
+		link_type node = root();
+		while (node != nil_node()) {
+			if (KeyOfValue()(node->data) == value)
+				break;
+			else if (comp(node->data, value))
+				node = static_cast<const link_type>(node->left);
+			else
+				node = static_cast<const link_type>(node->right);
+		}
+		return iterator(node, nil_node(), root());
+	}
+
+	const_iterator find(Key const &value) const {
+		iterator ret = (const_cast<rbtree *>(this)->find(value));
+		return const_iterator(ret.node, nil_node(), root());
+	}
+
+	iterator erase(iterator position) {
+		iterator ret = remove(position);
+		return ret;
+	}
+
+	const_iterator erase(const_iterator position) {
+		iterator ret = remove(iterator(position.node, nil_node(), root()));
+		return const_iterator(ret.node, nil_node(), root());
+	}
+
+	iterator min() {
+		return iterator(leftmost(), nil_node(), root());
+	}
+
+	iterator max() {
+		return iterator(rightmost(), nil_node(), root());
+	}
+
+	const_iterator min() const noexcept {
+		return transform_const_iterator(const_cast<rbtree *>(this)->min());
+	}
+
+	const_iterator max() const noexcept {
+		return transform_const_iterator(const_cast<rbtree *>(this)->max());
+	}
+
+	std::pair<iterator, iterator> equal_range(Key const &key) {
+		iterator first = begin();
+		while (first != end() && (comp(KeyOfValue()(*first), key) || comp(key, KeyOfValue()(*first))))
+			++first;
+		iterator last = first;
+		while (last != end() && (!comp(key, KeyOfValue()(*last)) && !comp(KeyOfValue()(*last), key)))
+			++last;
+		
+		return std::pair<iterator, iterator>(first, last);
+	}
+
+	std::pair<const_iterator, const_iterator> equal_range(Key const &key) const {
+		std::pair<iterator, iterator> ret = const_cast<rbtree *>(this)->equal_range(key);
+		return std::pair<const_iterator, const_iterator>(transform_const_iterator(ret.first), 
+														 transform_const_iterator(ret.second));
+	}
+
+	iterator lower_bound(Key const &key) {
+		iterator first = begin();
+		while (first != end() && comp(KeyOfValue()(*first), key))
+			++first;
+		return first;
+	}
+
+	const_iterator lower_bound(Key const key) const {
+		return transform_const_iterator(const_cast<rbtree *>(this)->lower_bound(key));
+	}
+
+	iterator upper_bound(Key const &key) {
+		iterator first = lower_bound(key);
+		while (first != end() && (!comp(KeyOfValue()(*first), key) && !comp(key, KeyOfValue()(*first))))
+			++first;
+		return first;
+	}
+
+	const_iterator upper_bound(Key const key) const {
+		return transform_const_iterator(const_cast<rbtree *>(this)->upper_bound(key));
+	}
+
+	friend void swap(rbtree &first, rbtree &second) noexcept {
+		using std::swap;
+		swap(first.header, second.header);
+		swap(first.nil, second.nil);
+		swap(first.node_size, second.node_size);
+		swap(first.comp, second.comp);
 	}
 };
 
