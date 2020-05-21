@@ -2,34 +2,35 @@
 #include <stdexcept>
 #include "malgorithm.hpp"
 #include "mallocator.hpp"
+#include "mutility.hpp"
 
 namespace sx {
 
-enum rbcolor;
+enum __rbcolor;
 
-struct rbtree_node_base;
+struct __rbtree_node_base;
 
 template<typename T>
-struct rbtree_node;
+struct __rbtree_node;
 
-struct rbtree_iterator_base;
+struct __rbtree_iterator_base;
 
 template<typename T, typename Ptr, typename Ref>
-struct rbtree_iterator;
+struct __rbtree_iterator;
 
 template<typename Key, typename Value, typename KeyOfValue,
 	typename Compare, typename Alloc>
 class rbtree;
 
 
-enum rbcolor {
-	RED		= true,
-	BLACK	= false
+enum __rbcolor {
+	__RED		= true,
+	__BLACK	= false
 };
 
-struct rbtree_node_base {
-	using color_type	= rbcolor;
-	using base_ptr		= rbtree_node_base * ;
+struct __rbtree_node_base {
+	using color_type	= __rbcolor;
+	using base_ptr		= __rbtree_node_base * ;
 public:
 	color_type	color;		/* 结点颜色 */
 	base_ptr	parent;		/* 父结点 */
@@ -51,16 +52,16 @@ public:
 
 
 template<typename T>
-struct rbtree_node : public rbtree_node_base {
+struct __rbtree_node : public __rbtree_node_base {
 	T	data;
 public:
-	rbtree_node(T const &val) : data(val) {}
-	rbtree_node(T &&val) noexcept(noexcept(T(std::declval<T>()))) : data(std::move(val)) {}
+	__rbtree_node(T const &val) : data(val) {}
+	__rbtree_node(T &&val) noexcept(noexcept(T(std::declval<T>()))) : data(std::move(val)) {}
 };
 
 
-struct rbtree_iterator_base {
-	using base_ptr			= rbtree_node_base::base_ptr;
+struct __rbtree_iterator_base {
+	using base_ptr			= __rbtree_node_base::base_ptr;
 	using iterator_category = sx::bidirectional_iterator_tag;
 	using difference_type	= std::ptrdiff_t;
 public:
@@ -68,10 +69,10 @@ public:
 	base_ptr	nil;
 	base_ptr	root;
 public:
-	rbtree_iterator_base(base_ptr node, base_ptr nil, base_ptr root) : node(node), nil(nil), root(root) {}
-	rbtree_iterator_base(rbtree_iterator_base const &) = default;
-	rbtree_iterator_base &operator=(rbtree_iterator_base const &) = default;
-	~rbtree_iterator_base() = default;
+	__rbtree_iterator_base(base_ptr node, base_ptr nil, base_ptr root) : node(node), nil(nil), root(root) {}
+	__rbtree_iterator_base(__rbtree_iterator_base const &) = default;
+	__rbtree_iterator_base &operator=(__rbtree_iterator_base const &) = default;
+	~__rbtree_iterator_base() = default;
 public:
 	void increment() {
 		if (node == nil)
@@ -115,68 +116,68 @@ public:
 
 
 template<typename T, typename Ptr, typename Ref>
-struct rbtree_iterator : public sx::rbtree_iterator_base {
+struct __rbtree_iterator : public sx::__rbtree_iterator_base {
 	using value_type		= T;
 	using pointer			= Ptr;
 	using reference			= Ref;
 	using difference_type	= std::ptrdiff_t;
 	using iterator_category = sx::bidirectional_iterator_tag;
-	using sx::rbtree_iterator_base::base_ptr;
+	using sx::__rbtree_iterator_base::base_ptr;
 public:
-	rbtree_iterator() : rbtree_iterator_base(nullptr, nullptr, nullptr) {}
-	rbtree_iterator(base_ptr ptr, base_ptr nil, base_ptr root) : rbtree_iterator_base(ptr, nil, root) {}
-	rbtree_iterator(rbtree_iterator const &) = default;
-	rbtree_iterator &operator=(rbtree_iterator const &) = default;
-	~rbtree_iterator() = default;
+	__rbtree_iterator() : __rbtree_iterator_base(nullptr, nullptr, nullptr) {}
+	__rbtree_iterator(base_ptr ptr, base_ptr nil, base_ptr root) : __rbtree_iterator_base(ptr, nil, root) {}
+	__rbtree_iterator(__rbtree_iterator const &) = default;
+	__rbtree_iterator &operator=(__rbtree_iterator const &) = default;
+	~__rbtree_iterator() = default;
 public:
 	reference operator*() {
-		return reinterpret_cast<rbtree_node<T> *>(this->node)->data;
+		return reinterpret_cast<__rbtree_node<T> *>(this->node)->data;
 	}
 
 	pointer operator->() {
 		return &(this->operator*());
 	}
 
-	rbtree_iterator operator++(int) {
-		rbtree_iterator ret = *this;
+	__rbtree_iterator operator++(int) {
+		__rbtree_iterator ret = *this;
 		this->increment();
 		return ret;
 	}
 
-	rbtree_iterator &operator++() {
+	__rbtree_iterator &operator++() {
 		this->increment();
 		return *this;
 	}
 
-	rbtree_iterator operator--(int) {
-		rbtree_iterator ret = *this;
+	__rbtree_iterator operator--(int) {
+		__rbtree_iterator ret = *this;
 		this->decrement();
 		return ret;
 	}
 
-	rbtree_iterator &operator--() {
+	__rbtree_iterator &operator--() {
 		this->decrement();
 		return *this;
 	}
 
-	friend bool operator==(rbtree_iterator const &first, rbtree_iterator const &second) noexcept {
+	friend bool operator==(__rbtree_iterator const &first, __rbtree_iterator const &second) noexcept {
 		return first.root == second.root && first.node == second.node;
 	}
 
-	friend bool operator!=(rbtree_iterator const &first, rbtree_iterator const &second) noexcept {
+	friend bool operator!=(__rbtree_iterator const &first, __rbtree_iterator const &second) noexcept {
 		return !(first == second);
 	}
 };
 
 
 template<typename Key, typename Value, typename KeyOfValue, typename Compare, typename Alloc>
-class rbtree {
+class rbtree : public sx::comparetor<rbtree<Key, Value, KeyOfValue, Compare, Alloc>> {
 protected:
 	using void_pointer = void *;
-	using base_ptr	   = sx::rbtree_node_base *;
-	using rb_tree_node = sx::rbtree_node<Value>;
-	using rb_tree_color = sx::rbcolor;
-	using Allocator		= decltype(sx::transform_alloator_type<Key, rbtree_node<Value>>(Alloc{}));
+	using base_ptr	   = sx::__rbtree_node_base *;
+	using rb_tree_node = sx::__rbtree_node<Value>;
+	using rb_tree_color = sx::__rbcolor;
+	using Allocator		= decltype(sx::transform_alloator_type<Key, __rbtree_node<Value>>(Alloc{}));
 public:
 	using key_type			= Key;
 	using value_type		= Value;
@@ -187,12 +188,12 @@ public:
 	using link_type			= rb_tree_node * ;
 	using size_type			= std::size_t;
 	using difference_type	= std::ptrdiff_t;
-	using iterator			= sx::rbtree_iterator<Value, Value *, Value &>;
-	using const_iterator	= sx::rbtree_iterator<Value, Value const *, Value const &>;
+	using iterator			= sx::__rbtree_iterator<Value, Value *, Value &>;
+	using const_iterator	= sx::__rbtree_iterator<Value, Value const *, Value const &>;
 protected:
 	static Allocator	allocator;	/* 分配器 */
-	rbtree_node_base	header;		/* 头结点 */
-	rbtree_node_base   *nil;		/* nil 哨兵结点 */
+	__rbtree_node_base	header;		/* 头结点 */
+	__rbtree_node_base   *nil;		/* nil 哨兵结点 */
 	size_type			node_size;	/* 结点数量 */
 	Compare				comp;		/* 比较器 */
 protected:
@@ -224,7 +225,7 @@ protected:
 	void empty_initialize() {
 		nil = allocator.allocate(1);
 		header.parent = header.left = header.right = nil_node();
-		nil->color = BLACK;
+		nil->color = __BLACK;
 		node_size = 0;
 	}
 
@@ -311,7 +312,7 @@ protected:
 	iterator __insert(Args&&... args) {
 		base_ptr new_node = create_node(std::forward<Args>(args)...);
 		new_node->left = new_node->right = new_node->parent = nil_node();
-		new_node->color = RED;
+		new_node->color = __RED;
 
 		base_ptr node_ptr = root();
 		base_ptr parent_ptr = nil_node();
@@ -347,14 +348,14 @@ protected:
 	}
 
 	void __insert_fixup(base_ptr node_ptr) {
-		while (node_ptr->parent->color == RED) {
+		while (node_ptr->parent->color == __RED) {
 			if (node_ptr->parent == node_ptr->parent->parent->left) {
 				base_ptr parnet_ptr = node_ptr->parent;
 				base_ptr uncle_ptr = parnet_ptr->parent->right;
-				if (uncle_ptr->color == RED) {
-					uncle_ptr->color = BLACK;
-					node_ptr->color = BLACK;
-					node_ptr->parent->color = RED;
+				if (uncle_ptr->color == __RED) {
+					uncle_ptr->color = __BLACK;
+					node_ptr->color = __BLACK;
+					node_ptr->parent->color = __RED;
 					node_ptr = parnet_ptr->parent;
 				} else {
 					if (node_ptr == parnet_ptr->right) {
@@ -362,17 +363,17 @@ protected:
 						left_rotate(node_ptr);
 						parnet_ptr = node_ptr->parent;
 					}
-					parnet_ptr->color = BLACK;
-					parnet_ptr->parent->color = RED;	
+					parnet_ptr->color = __BLACK;
+					parnet_ptr->parent->color = __RED;	
 					right_rotate(parnet_ptr->parent);
 				}
 			} else {
 				base_ptr parent_ptr = node_ptr->parent;
 				base_ptr uncle_ptr = parent_ptr->left;
-				if (uncle_ptr->color == RED) {
-					uncle_ptr->color = BLACK;
-					parent_ptr->color = BLACK;
-					parent_ptr->parent->color = RED;
+				if (uncle_ptr->color == __RED) {
+					uncle_ptr->color = __BLACK;
+					parent_ptr->color = __BLACK;
+					parent_ptr->parent->color = __RED;
 					node_ptr = parent_ptr->parent;
 				} else {
 					if (node_ptr == parent_ptr->left) {
@@ -380,13 +381,13 @@ protected:
 						right_rotate(node_ptr);
 						parent_ptr = node_ptr->parent;
 					}
-					parent_ptr->color = BLACK;
-					parent_ptr->parent->color = RED;
+					parent_ptr->color = __BLACK;
+					parent_ptr->parent->color = __RED;
 					left_rotate(parent_ptr->parent);
 				}
 			}
 		}
-		root()->color = BLACK;
+		root()->color = __BLACK;
 	}
 
 	void tranfers(base_ptr node, base_ptr replace) {
@@ -400,65 +401,65 @@ protected:
 	}
 
 	base_ptr minimun(base_ptr node) {
-		return rbtree_node_base::minimun(node, nil_node());
+		return __rbtree_node_base::minimun(node, nil_node());
 	}
 
 	base_ptr maxinum(base_ptr node) {
-		return rbtree_node_base::maximun(node, nil_node());
+		return __rbtree_node_base::maximun(node, nil_node());
 	}
 
 	void remove_fixup(base_ptr node) {
 		base_ptr brother;
-		while (node != root() && node->color == BLACK) {
+		while (node != root() && node->color == __BLACK) {
 			if (node == node->parent->left) {
 				brother = node->parent->right;
-				if (brother->color == RED) {
-					brother->color = BLACK;
-					node->parent->color = RED;
+				if (brother->color == __RED) {
+					brother->color = __BLACK;
+					node->parent->color = __RED;
 					left_rotate(node->parent);
 					brother = node->parent->right;
 				}
-				if (brother->left->color == BLACK && brother->right->color == BLACK) {
-					brother->color = RED;
+				if (brother->left->color == __BLACK && brother->right->color == __BLACK) {
+					brother->color = __RED;
 					node = node->parent;
 				} else {
-					if (brother->right->color == BLACK) {
-						brother->left->color = BLACK;
-						brother->color = RED;
+					if (brother->right->color == __BLACK) {
+						brother->left->color = __BLACK;
+						brother->color = __RED;
 						left_rotate(brother);
 						brother = node->parent->right;
 					}
 					brother->color = node->parent->color;
-					brother->right->color = BLACK;
-					node->parent->color = BLACK;
+					brother->right->color = __BLACK;
+					node->parent->color = __BLACK;
 					node = root();
 				}
 			} else {
 				brother = node->parent->left;
-				if (brother->color == RED) {
-					brother->color = BLACK;
-					node->parent->color = RED;
+				if (brother->color == __RED) {
+					brother->color = __BLACK;
+					node->parent->color = __RED;
 					right_rotate(node->parent);
 					brother = node->parent->left;
 				}
-				if (brother->left->color == BLACK && brother->right->color == BLACK) {
-					brother->color = RED;
+				if (brother->left->color == __BLACK && brother->right->color == __BLACK) {
+					brother->color = __RED;
 					node = node->parent;
 				} else {
-					if (brother->left->color == BLACK) {
-						brother->right->color = BLACK;
-						brother->color = RED;
+					if (brother->left->color == __BLACK) {
+						brother->right->color = __BLACK;
+						brother->color = __RED;
 						left_rotate(brother);
 						brother = node->parent->left;
 					}
 					brother->color = node->parent->color;
-					brother->left->color = BLACK;
-					node->parent->color = BLACK;
+					brother->left->color = __BLACK;
+					node->parent->color = __BLACK;
 					node = root();
 				}
 			}
 		}
-		node->color = BLACK;
+		node->color = __BLACK;
 	}
 
 	iterator remove(iterator position) {
@@ -492,7 +493,7 @@ protected:
 			origin_node->left->parent = origin_node;
 		}
 
-		if (origin_color == BLACK)
+		if (origin_color == __BLACK)
 			remove_fixup(tranfers_node);
 
 		if (node == leftmost()) {
