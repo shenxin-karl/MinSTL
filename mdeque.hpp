@@ -3,6 +3,7 @@
 #include "mallocator.hpp"
 #include "miterator.hpp"
 #include "malgorithm.hpp"
+#include "mutility.hpp"
 
 namespace sx {
 
@@ -157,7 +158,7 @@ public:
 
 
 template<typename T, typename Alloc>
-class deque {
+class deque : public sx::comparetor<deque<T, Alloc>> {
 	friend void swap<T, Alloc>(deque<T, Alloc> &, deque<T, Alloc> &) noexcept;
 public:
     using value_type        = T;
