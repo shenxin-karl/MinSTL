@@ -2,6 +2,7 @@
 #define M_LIST_HPP
 #include "mallocator.hpp"
 #include "miterator.hpp"
+#include "mutility.hpp"
 #include <exception>
 
 namespace sx {
@@ -88,7 +89,7 @@ public:
 };
 
 template<typename T, typename Alloc>
-class list {
+class list : public sx::comparetor<list<T, Alloc> {
 	template<typename Type, typename AllocType>
 	friend void swap(list<Type, AllocType> &, list<Type, AllocType> &) noexcept;
 

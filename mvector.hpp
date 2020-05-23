@@ -2,6 +2,7 @@
 #define M_VECTOR_HPP
 #include "mallocator.hpp"
 #include "miterator.hpp"
+#include "mutility.hpp"
 #include <cstddef>
 #include <initializer_list>
 #include <algorithm>
@@ -11,34 +12,8 @@ namespace sx {
 class vector_empty : public std::exception {
 };
 
-template<typename T, typename Alloc> class vector;
-
-template<typename T, typename Alloc>
-bool operator==(vector<T, Alloc> const &, vector<T, Alloc> const &) noexcept;
-
-template<typename T, typename Alloc>
-bool operator!=(vector<T, Alloc> const &, vector<T, Alloc> const &) noexcept;
-
-template<typename T, typename Alloc>
-bool operator<(vector<T, Alloc> const &, vector<T, Alloc> const &) noexcept;
-
-template<typename T, typename Alloc>
-bool operator<=(vector<T, Alloc> const &, vector<T, Alloc> const &) noexcept;
-
-template<typename T, typename Alloc>
-bool operator>(vector<T, Alloc> const &, vector<T, Alloc> const &) noexcept;
-
-template<typename T, typename Alloc>
-bool operator>=(vector<T, Alloc> const &, vector<T, Alloc> const &) noexcept;
-
 template<typename T, typename Alloc = sx::allocator<T>>
-class vector {
-	friend bool operator==(vector<T, Alloc> const &, vector<T, Alloc> const &) noexcept;
-	friend bool operator!=(vector<T, Alloc> const &, vector<T, Alloc> const &) noexcept;
-	friend bool operator<(vector<T, Alloc> const &, vector<T, Alloc> const &) noexcept;
-	friend bool operator<=(vector<T, Alloc> const &, vector<T, Alloc> const &) noexcept;
-	friend bool operator>(vector<T, Alloc> const &, vector<T, Alloc> const &) noexcept;
-	friend bool operator>=(vector<T, Alloc> const &, vector<T, Alloc> const &) noexcept;
+class vector : public sx::comparetor<vector<T, Alloc>> {
 public:
 	using value_type 		= T;
 	using size_type 		= std::size_t;
@@ -462,79 +437,6 @@ public:
 
 template<typename T, typename Alloc>
 Alloc vector<T, Alloc>::allocator;
-
-
-template<typename T, typename Alloc>
-bool operator==(vector<T, Alloc> const &first, vector<T, Alloc> const &second) noexcept {
-	using const_iterator = typename vector<T, Alloc>::const_iterator;
-	const_iterator begin1 = first.cbegin();
-	const_iterator begin2 = second.cbegin();
-	const_iterator end1 = first.cend();
-	const_iterator end2 = second.cend();
-
-	for (; begin1 != end1 && begin2 != end2; ++begin1, ++begin2) {
-		if (*begin1 != *begin2)
-			return false;
-	}
-
-	if (first.size() > second.size())
-		return true;
-	else
-		return false;
-}
-
-template<typename T, typename Alloc>
-bool operator!=(vector<T, Alloc> const &first, vector<T, Alloc> const &second) noexcept {
-	return !(first == second);
-}
-
-template<typename T, typename Alloc>
-bool operator<(vector<T, Alloc> const &first, vector<T, Alloc> const &second) noexcept {
-	using const_iterator = typename vector<T, Alloc>::const_iterator;
-	const_iterator begin1 = first.cbegin();
-	const_iterator begin2 = second.cbegin();
-	const_iterator end1 = first.cend();
-	const_iterator end2 = second.cend();
-
-	for (; begin1 != end1 && begin2 != end2; ++begin1, ++begin2) {
-		if (*begin1 < *begin2)
-			return true;
-	}
-
-	if (first.size() < second.size())
-		return true;
-	else
-		return false;
-}
-
-template<typename T, typename Alloc>
-bool operator<=(vector<T, Alloc> const &first, vector<T, Alloc> const &second) noexcept {
-	using const_iterator = typename vector<T, Alloc>::const_iterator;
-	const_iterator begin1 = first.cbegin();
-	const_iterator begin2 = second.cbegin();
-	const_iterator end1 = first.cend();
-	const_iterator end2 = second.cend();
-
-	for (; begin1 != end1 && begin2 != end2; ++begin1, ++begin2) {
-		if (*begin1 <= *begin2)
-			return true;
-	}
-
-	if (first.size() <= second.size())
-		return true;
-	else
-		return false;
-}
-
-template<typename T, typename Alloc>
-bool operator>(vector<T, Alloc> const &first, vector<T, Alloc> const &second) noexcept {
-	return !(first <= second);
-}
-
-template<typename T, typename Alloc>
-bool operator>=(vector<T, Alloc> const &first, vector<T, Alloc> const &second) noexcept {
-	return !(first < second);
-}
 
 }
 

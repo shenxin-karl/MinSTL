@@ -3,6 +3,7 @@
 #include <cstddef>
 #include "miterator.hpp"
 #include "mallocator.hpp"
+#include "mutility.hpp"
 #include <exception>
 #include <utility>
 
@@ -30,13 +31,6 @@ class forward_list;
 
 template<typename T, typename Alloc>
 void swap(forward_list<T, Alloc> &, forward_list<T, Alloc> &) noexcept;
-
-template<typename T, typename Alloc>
-bool operator==(forward_list<T, Alloc> const &, forward_list<T, Alloc> const &) noexcept;
-
-template<typename T, typename Alloc>
-bool operator!=(forward_list<T, Alloc> const &, forward_list<T, Alloc> const &) noexcept;
-
 
 
 class forward_list_empty : public std::exception {
@@ -125,10 +119,8 @@ public:
 
 
 template<typename T, typename Alloc>
-class forward_list {
+class forward_list : public sx::comparetor<forward_list<T, Alloc>> {
 	friend void swap<T, Alloc>(forward_list<T, Alloc> &, forward_list<T, Alloc> &) noexcept;
-	friend bool operator==<T, Alloc>(forward_list<T, Alloc> const &, forward_list<T, Alloc> const &) noexcept;
-	friend bool operator!=<T, Alloc>(forward_list<T, Alloc> const &, forward_list<T, Alloc> const &) noexcept;
 public:
 	using value_type		= T;
 	using pointer			= T * ;
@@ -555,29 +547,5 @@ void swap(forward_list<T, Alloc> &first, forward_list<T, Alloc> &second) noexcep
 	swap(first.node_size, second.node_size);
 }
 
-template<typename T, typename Alloc>
-bool operator==(forward_list<T, Alloc> const &first, forward_list<T, Alloc> const &second) noexcept {
-	if (first.size() != second.size())
-		return false;
-
-	auto first1 = first.begin();
-	auto first2 = second.begin();
-	auto end1 = first.end();
-	auto end2 = first.end();
-
-	while (first1 != end1 && first2 != end2) {
-		if (*first1 != *first2)
-			return false;
-	}
-	return true;
 }
-
-template<typename T, typename Alloc>
-bool operator!=(forward_list<T, Alloc> const &first, forward_list<T, Alloc> const &second) noexcept {
-	return !(first == second);
-}
-
-}
-
-
 #endif // !M_FORWARD_LIST_HPP
