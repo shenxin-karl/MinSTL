@@ -76,6 +76,9 @@ Alloc<R> transform_alloator_type(Alloc<T>);
 template<typename T>
 struct identity {
 	using type = T;
+	type const & operator()(type const &val) const noexcept {
+		return val;
+	}
 };
 
 template<typename T>
