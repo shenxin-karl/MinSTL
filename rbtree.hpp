@@ -1,8 +1,10 @@
 #ifndef RBTREE_HPP
+#define RBTREE_HPP
 #include <stdexcept>
 #include "malgorithm.hpp"
 #include "mallocator.hpp"
 #include "mutility.hpp"
+#include "mtype_traits.hpp"
 
 namespace sx {
 
@@ -23,9 +25,15 @@ template<typename Key, typename Value, typename KeyOfValue,
 class rbtree;
 
 
+template<typename Key, typename Value, typename KeyOfValue,
+	typename Compare, typename Alloc>
+void swap(rbtree<Key, Value, KeyOfValue, Compare, Alloc> &, rbtree<Key, Value, KeyOfValue, Compare, Alloc> &) noexcept;
+
+
+
 enum __rbcolor {
 	__RED		= true,
-	__BLACK	= false
+	__BLACK		= false
 };
 
 struct __rbtree_node_base {
@@ -173,15 +181,15 @@ public:
 template<typename Key, typename Value, typename KeyOfValue, typename Compare, typename Alloc>
 class rbtree : public sx::comparetor<rbtree<Key, Value, KeyOfValue, Compare, Alloc>> {
 protected:
-	using void_pointer = void *;
-	using base_ptr	   = sx::__rbtree_node_base *;
-	using rb_tree_node = sx::__rbtree_node<Value>;
+	using void_pointer	= void *;
+	using base_ptr		= sx::__rbtree_node_base *;
+	using rb_tree_node	= sx::__rbtree_node<Value>;
 	using rb_tree_color = sx::__rbcolor;
 	using Allocator		= decltype(sx::transform_alloator_type<Key, __rbtree_node<Value>>(Alloc{}));
 public:
 	using key_type			= Key;
 	using value_type		= Value;
-	using poineter			= value_type *;
+	using pointer			= value_type *;
 	using reference			= value_type &;
 	using const_pointer		= value_type const *;
 	using const_reference	= value_type const &;
@@ -191,11 +199,11 @@ public:
 	using iterator			= sx::__rbtree_iterator<Value, Value *, Value &>;
 	using const_iterator	= sx::__rbtree_iterator<Value, Value const *, Value const &>;
 protected:
-	static Allocator	allocator;	/* 分配器 */
-	__rbtree_node_base	header;		/* 头结点 */
-	__rbtree_node_base   *nil;		/* nil 哨兵结点 */
-	size_type			node_size;	/* 结点数量 */
-	Compare				comp;		/* 比较器 */
+	static Allocator		allocator;	/* 分配器 */
+	__rbtree_node_base		header;		/* 头结点 */
+	__rbtree_node_base     *nil;		/* nil 哨兵结点 */
+	size_type				node_size;	/* 结点数量 */
+	Compare					comp;		/* 比较器 */
 protected:
 	static link_type get_node() {
 		return allocator.allocate(1);
@@ -309,7 +317,7 @@ protected:
 	}
 
 	template<bool Is_Unique, typename... Args>
-	iterator __insert(Args&&... args) {
+	std::pair<iterator, bool> __insert(Args&&... args) {
 		base_ptr new_node = create_node(std::forward<Args>(args)...);
 		new_node->left = new_node->right = new_node->parent = nil_node();
 		new_node->color = __RED;
@@ -321,7 +329,7 @@ protected:
 			
 			if (Is_Unique && node_ptr != nil_node() && (!key_compare(new_node, node_ptr) && !key_compare(node_ptr, new_node))) {
 				destroy_node(static_cast<link_type>(new_node));
-				return iterator(node_ptr, nil_node(), root());
+				return std::pair<iterator, bool>(iterator(node_ptr, nil_node(), root()), false);
 			}
 			if (key_compare(new_node, node_ptr))
 				node_ptr = node_ptr->left;
@@ -344,7 +352,7 @@ protected:
 
 		__insert_fixup(new_node);
 		++node_size;
-		return iterator(new_node, nil_node(), root());
+		return std::pair<iterator, bool>(iterator(new_node, nil_node(), root()), true);
 	}
 
 	void __insert_fixup(base_ptr node_ptr) {
@@ -519,61 +527,40 @@ protected:
 		__destroy(node->right);
 		destroy_node(static_cast<link_type>(node));
 	}
-
-	template<bool Is_Unique, typename InputIterator,
-		typename = std::enable_if_t<sx::is_input_iterator_v<InputIterator>>>
-	void alloc_and_fill(InputIterator first, InputIterator last) {
-		try {
-			for (; first != last; ++first) {
-				if (Is_Unique)
-					insert_unique(*first);
-				else
-					insert_equal(*first);
-			}
-		} catch (...) {
-			clear();
-		}
-	}
 public:
 	rbtree() {
 		empty_initialize();
 	}
 
-	rbtree(rbtree const &other) : rbtree() {
-		alloc_and_fill<false>(other.begin(), other.end());
+	rbtree(Compare const &comp) : comp(comp) {
+		empty_initialize();
 	}
 
-	template<bool Is_Unique, typename InputIterator,
-		typename = std::enable_if_t<sx::is_input_iterator_v<InputIterator>>>
-	rbtree(InputIterator first, InputIterator last) : rbtree() {
-		alloc_and_fill<Is_Unique>(first, last);
+	rbtree(rbtree const &other) : rbtree() {
+		insert_equal(other.begin(), other.end());
 	}
 
 	rbtree(rbtree && other) noexcept : rbtree() {
-		swap(*this, other);
+		sx::swap(*this, other);
 	}
 
 	rbtree &operator=(rbtree const &other) {
 		if (this == &other)
 			return *this;
 		rbtree tmp = other;
-		swap(*this, tmp);
+		sx::swap(*this, tmp);
 		return *this;
 	}
 
 	rbtree &operator=(rbtree &&other) noexcept {
 		rbtree tmp = std::move(other);
-		swap(*this, tmp);
+		sx::swap(*this, tmp);
 		return *this;
 	}
 
 	~rbtree() {
 		clear();
 		allocator.deallocate(static_cast<link_type>(nil), sizeof(link_type));
-	}
-
-	static const_iterator transform_const_iterator(iterator iter) noexcept {
-		return const_iterator(iter.node, iter.nil, iter.root);
 	}
 public:
 	iterator begin() noexcept {
@@ -601,14 +588,52 @@ public:
 		return transform_const_iterator(const_cast<rbtree *>(this)->end());
 	}
 
-	iterator insert_unique(Value const &value) {
-		iterator ret = __insert<true>(value);
+	std::pair<iterator, bool> insert_unique(Value const &value) {
+		return __insert<true>(value);
+	}
+
+	template<typename InputIterator, 
+		typename = std::enable_if_t<sx::is_input_iterator_v<InputIterator>>>
+	std::pair<iterator, bool> insert_unique(InputIterator first, InputIterator last) {
+		InputIterator iter = first;
+		std::pair<iterator, bool> ret;
+		try {
+			for ( ;iter != last; ++iter)
+				ret = insert_unique(*first);
+		} catch (...) {
+			for (; first != iter; ++first)
+				erase(*first);
+		}
 		return ret;
 	}
 
+	template<typename... Args>
+	std::pair<iterator, bool> emplace_unique(Args&&... args) {
+		return __insert(std::forward<Args>(args)...);
+	}
+
 	iterator insert_equal(Value const &value) {
-		iterator ret = __insert<false>(value);
-		return ret;
+		std::pair<iterator, bool> ret = __insert<false>(value);
+		return ret.first;
+	}
+
+	template<typename InputIterator,
+		typename = std::enable_if_t<sx::is_input_iterator_v<InputIterator>>>
+	void insert_equal(InputIterator first, InputIterator last) {
+		InputIterator iter = first;
+		try {
+			for (; iter != last; ++iter)
+				insert_equal(*first);
+		} catch (...) {
+			for (; first != iter; ++first)
+				erase(*first);
+		}
+	}
+
+	template<typename... Args>
+	iterator emplace_equal(Args&&... args) {
+		std::pair<iterator, bool> ret = __insert(std::forward<Args>(args)...);
+		return ret.first;
 	}
 	
 	size_type size() const noexcept {
@@ -625,15 +650,20 @@ public:
 		empty_initialize();
 	}
 
-	iterator find(Key const &value) {
-		link_type node = root();
+	iterator find(Key const &key) {
+		base_ptr node = root();
+		KeyOfValue key_of_value;
+
 		while (node != nil_node()) {
-			if (KeyOfValue()(node->data) == value)
+			bool test1 = comp(key, key_of_value(static_cast<link_type>(node)->data));
+			bool test2 = comp(key_of_value(static_cast<link_type>(node)->data), key);
+
+			if (!test1 && !test2)
 				break;
-			else if (comp(node->data, value))
-				node = static_cast<const link_type>(node->left);
+			else if (test1)
+				node = node->left;
 			else
-				node = static_cast<const link_type>(node->right);
+				node = node->right;
 		}
 		return iterator(node, nil_node(), root());
 	}
@@ -653,6 +683,13 @@ public:
 		return const_iterator(ret.node, nil_node(), root());
 	}
 
+	iterator erase(Key const &key) {
+		iterator ret = find(key);
+		if (ret != end())
+			ret = erase(ret);
+		return ret;
+	}
+
 	iterator min() {
 		return iterator(leftmost(), nil_node(), root());
 	}
@@ -669,15 +706,8 @@ public:
 		return transform_const_iterator(const_cast<rbtree *>(this)->max());
 	}
 
-	std::pair<iterator, iterator> equal_range(Key const &key) {
-		iterator first = begin();
-		while (first != end() && (comp(KeyOfValue()(*first), key) || comp(key, KeyOfValue()(*first))))
-			++first;
-		iterator last = first;
-		while (last != end() && (!comp(key, KeyOfValue()(*last)) && !comp(KeyOfValue()(*last), key)))
-			++last;
-		
-		return std::pair<iterator, iterator>(first, last);
+	std::pair<iterator, iterator> equal_range(Key const &key) {		
+		return std::pair<iterator, iterator>(lower_bound(key), upper_bound(key));
 	}
 
 	std::pair<const_iterator, const_iterator> equal_range(Key const &key) const {
@@ -687,10 +717,25 @@ public:
 	}
 
 	iterator lower_bound(Key const &key) {
-		iterator first = begin();
-		while (first != end() && comp(KeyOfValue()(*first), key))
-			++first;
-		return first;
+		base_ptr node = root();
+		base_ptr before = nil_node();
+		KeyOfValue key_of_value;
+
+		while (node != nil_node()) {
+			before = node;
+			bool test1 = comp(key, key_of_value(static_cast<link_type>(node)->data));
+			bool test2 = comp(key_of_value(static_cast<link_type>(node)->data), key);
+			if (!test1 && !test2)
+				break;
+			else if (test1)
+				node = node->left;
+			else
+				node = node->right;
+		}
+
+		if (node != nil_node())
+			before = node;
+		return iterator(before, nil_node(), root());
 	}
 
 	const_iterator lower_bound(Key const key) const {
@@ -698,24 +743,39 @@ public:
 	}
 
 	iterator upper_bound(Key const &key) {
-		iterator first = lower_bound(key);
-		while (first != end() && (!comp(KeyOfValue()(*first), key) && !comp(key, KeyOfValue()(*first))))
-			++first;
-		return first;
+		iterator ret = lower_bound(key);
+		KeyOfValue key_of_value;
+	
+		while (ret != end()
+			&& (!comp(key, key_of_value(static_cast<link_type>(ret.node)->data)) 
+				&& !comp(static_cast<link_type>(ret.node)->data, key))) {
+			++ret;
+		}
+		return ret;
 	}
 
 	const_iterator upper_bound(Key const key) const {
 		return transform_const_iterator(const_cast<rbtree *>(this)->upper_bound(key));
 	}
 
-	friend void swap(rbtree &first, rbtree &second) noexcept {
+	static const_iterator transform_const_iterator(iterator iter) noexcept {
+		return const_iterator(iter.node, iter.nil, iter.root);
+	}
+
+	void swap(rbtree &other) noexcept {
 		using std::swap;
-		swap(first.header, second.header);
-		swap(first.nil, second.nil);
-		swap(first.node_size, second.node_size);
-		swap(first.comp, second.comp);
+		swap(this->header, other.header);
+		swap(this->nil, other.nil);
+		swap(this->node_size, other.node_size);
+		swap(this->comp, other.comp);
 	}
 };
+
+template<typename Key, typename Value, typename KeyOfValue,
+	typename Compare, typename Alloc>
+void swap(rbtree<Key, Value, KeyOfValue, Compare, Alloc> &lhs, rbtree<Key, Value, KeyOfValue, Compare, Alloc> &rhs) noexcept {
+	lhs.swap(rhs);
+}
 
 
 template<typename Key, typename Value, typename KeyOfValue, typename Compare, typename Alloc>
