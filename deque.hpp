@@ -1,9 +1,9 @@
 ﻿#ifndef M_DEQUE_HPP
 #define M_DEQUE_HPP
-#include "mallocator.hpp"
-#include "miterator.hpp"
-#include "malgorithm.hpp"
-#include "mutility.hpp"
+#include "allocator.hpp"
+#include "iterator.hpp"
+#include "algorithm.hpp"
+#include "utility.hpp"
 
 namespace sx {
 

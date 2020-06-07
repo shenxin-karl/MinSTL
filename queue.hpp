@@ -1,6 +1,6 @@
 #ifndef M_QUEUE_HPP
 #define M_QUEUE_HPP
-#include "mdeque.hpp"
+#include "deque.hpp"
 
 namespace sx {
 

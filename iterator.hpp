@@ -2,7 +2,6 @@
 #define M_ITERATOR_HPP
 #include <cstddef>
 #include <type_traits>
-#include "miterator.hpp"
 
 namespace sx {
 

@@ -1,8 +1,8 @@
 ﻿#ifndef M_VECTOR_HPP
 #define M_VECTOR_HPP
-#include "mallocator.hpp"
-#include "miterator.hpp"
-#include "mutility.hpp"
+#include "allocator.hpp"
+#include "iterator.hpp"
+#include "utility.hpp"
 #include <cstddef>
 #include <initializer_list>
 #include <algorithm>
@@ -13,6 +13,12 @@ class vector_empty : public std::exception {
 };
 
 template<typename T, typename Alloc = sx::allocator<T>>
+class vector;
+
+template<typename T, typename Alloc>
+void swap(vector<T, Alloc> &, vector<T, Alloc> &) noexcept;
+
+template<typename T, typename Alloc>
 class vector : public sx::comparetor<vector<T, Alloc>> {
 public:
 	using value_type 		= T;
@@ -31,6 +37,12 @@ private:
 	iterator 			end_of_store;		/* 可用空间末尾 */
 public:
 	vector() : start(nullptr), finish(nullptr), end_of_store(nullptr) {}
+
+	vector(size_type n, value_type const &val) {
+		start = allocator.allocate(n);
+		sx::uninitialized_fill_n(start, n, val);
+		finish = end_of_store = start + n;
+	}
 
 	vector(vector const &other) {
 		start = alloc_and_fill(other.begin(), other.end());
@@ -79,13 +91,6 @@ public:
 		}
 	}
 private:
-	friend void swap(vector &first, vector &second) noexcept {
-		using std::swap;
-		swap(first.start, second.start);
-		swap(first.finish, second.finish);
-		swap(first.end_of_store, second.end_of_store);
-	}
-
 	void deallocate() {
 		allocator.deallocate(start, end_of_store - start);
 	}
@@ -432,8 +437,21 @@ public:
 			finish = sx::uninitialized_fill_n(start + old_size, size - old_size, value);
 		}
 	}
+
+	void swap(vector &other) noexcept {
+		using std::swap;
+		swap(start, other.start);
+		swap(finish, other.finish);
+		swap(end_of_store, other.end_of_store);
+	}
+
+
 };
 
+template<typename T, typename Alloc>
+void swap(vector<T, Alloc> &lhs, vector<T, Alloc> &rhs) noexcept {
+	lhs.swap(rhs);
+}
 
 template<typename T, typename Alloc>
 Alloc vector<T, Alloc>::allocator;

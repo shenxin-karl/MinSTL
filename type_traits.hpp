@@ -1,6 +1,6 @@
 #ifndef M_TYPE_TRAITS_HPP
 #define M_TYPE_TRAITS_HPP
-#include "miterator.hpp"
+#include "iterator.hpp"
 #include <type_traits>
 
 
@@ -39,6 +39,11 @@ public:
 	using type = std::true_type;
 };
 
+template<>
+class has_traivial_destructor<nullptr_t> {
+public:
+	using type = std::true_type;
+};
 
 template<typename T>
 using has_traivial_destructor_t = typename has_traivial_destructor<T>::type;
@@ -194,6 +199,28 @@ using is_bidirectional_iterator_t = typename is_bidirectional_iterator<Iterator>
 
 template<typename Iterator>
 static constexpr bool is_bidirectional_iterator_v = is_bidirectional_iterator_t<Iterator>::value;
+
+
+
+template<typename Iter, typename To>
+class is_convertible_iter_type {
+	static void aux(To);
+
+	template<typename I, typename T,
+		typename = decltype(aux(std::declval<decltype(*std::declval<I>())>()))>
+	static auto match(nullptr_t) -> std::true_type;
+
+	template<typename, typename>
+	static auto match(...) -> std::false_type;
+public:
+	using type = decltype(match<Iter, To>(nullptr));
+};
+
+template<typename Iter, typename To>
+using is_convertible_iter_type_t = typename is_convertible_iter_type<Iter, To>::type;
+
+template<typename Iter, typename To>
+static constexpr bool is_convertible_iter_type_v = is_convertible_iter_type_t<Iter, To>::value;
 
 } 	// !nampscace sx
 

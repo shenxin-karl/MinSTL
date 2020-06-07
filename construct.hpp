@@ -6,8 +6,8 @@
 #include <new>
 #include <cstdlib>
 #include <cstring>
-#include "mtype_traits.hpp"
-#include "miterator.hpp"
+#include "type_traits.hpp"
+#include "iterator.hpp"
 
 
 namespace sx {

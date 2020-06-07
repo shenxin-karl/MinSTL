@@ -1,10 +1,10 @@
-#ifndef RBTREE_HPP
+ï»¿#ifndef RBTREE_HPP
 #define RBTREE_HPP
 #include <stdexcept>
-#include "malgorithm.hpp"
-#include "mallocator.hpp"
-#include "mutility.hpp"
-#include "mtype_traits.hpp"
+#include "algorithm.hpp"
+#include "allocator.hpp"
+#include "utility.hpp"
+#include "type_traits.hpp"
 
 namespace sx {
 
@@ -40,10 +40,10 @@ struct __rbtree_node_base {
 	using color_type	= __rbcolor;
 	using base_ptr		= __rbtree_node_base * ;
 public:
-	color_type	color;		/* ½áµãÑÕÉ« */
-	base_ptr	parent;		/* ¸¸½áµã */
-	base_ptr	left;		/* ×ó½áµã */
-	base_ptr	right;		/* ÓÒ½áµã */
+	color_type	color;		/* ç»“ç‚¹é¢œè‰² */
+	base_ptr	parent;		/* çˆ¶ç»“ç‚¹ */
+	base_ptr	left;		/* å·¦ç»“ç‚¹ */
+	base_ptr	right;		/* å³ç»“ç‚¹ */
 
 	static base_ptr minimun(base_ptr node, base_ptr nil) {
 		while (node->left != nil)
@@ -69,19 +69,22 @@ public:
 
 
 struct __rbtree_iterator_base {
+	template<typename , typename, typename, typename, typename>
+	friend class rbtree;
+
 	using base_ptr			= __rbtree_node_base::base_ptr;
 	using iterator_category = sx::bidirectional_iterator_tag;
 	using difference_type	= std::ptrdiff_t;
-public:
+protected:
 	base_ptr	node;
 	base_ptr	nil;
 	base_ptr	root;
-public:
+protected:
 	__rbtree_iterator_base(base_ptr node, base_ptr nil, base_ptr root) : node(node), nil(nil), root(root) {}
 	__rbtree_iterator_base(__rbtree_iterator_base const &) = default;
 	__rbtree_iterator_base &operator=(__rbtree_iterator_base const &) = default;
 	~__rbtree_iterator_base() = default;
-public:
+protected:
 	void increment() {
 		if (node == nil)
 			throw std::invalid_argument("iterator operator++ error");
@@ -185,7 +188,7 @@ protected:
 	using base_ptr		= sx::__rbtree_node_base *;
 	using rb_tree_node	= sx::__rbtree_node<Value>;
 	using rb_tree_color = sx::__rbcolor;
-	using Allocator		= decltype(sx::transform_alloator_type<Key, __rbtree_node<Value>>(Alloc{}));
+	using Allocator		= decltype(sx::transform_alloator_type<Value, __rbtree_node<Value>>(Alloc{}));
 public:
 	using key_type			= Key;
 	using value_type		= Value;
@@ -199,11 +202,11 @@ public:
 	using iterator			= sx::__rbtree_iterator<Value, Value *, Value &>;
 	using const_iterator	= sx::__rbtree_iterator<Value, Value const *, Value const &>;
 protected:
-	static Allocator		allocator;	/* ·ÖÅäÆ÷ */
-	__rbtree_node_base		header;		/* Í·½áµã */
-	__rbtree_node_base     *nil;		/* nil ÉÚ±ø½áµã */
-	size_type				node_size;	/* ½áµãÊýÁ¿ */
-	Compare					comp;		/* ±È½ÏÆ÷ */
+	static Allocator		allocator;	/* åˆ†é…å™¨ */
+	__rbtree_node_base		header;		/* å¤´ç»“ç‚¹ */
+	__rbtree_node_base     *nil;		/* nil å“¨å…µç»“ç‚¹ */
+	size_type				node_size;	/* ç»“ç‚¹æ•°é‡ */
+	Compare					comp;		/* æ¯”è¾ƒå™¨ */
 protected:
 	static link_type get_node() {
 		return allocator.allocate(1);
@@ -345,9 +348,9 @@ protected:
 		else
 			parent_ptr->right = new_node;
 
-		if (leftmost() == nil_node() || comp(static_cast<link_type>(new_node)->data, leftmost()->data))
+		if (leftmost() == nil_node() || key_compare(new_node, leftmost()))
 			set_leftmost(new_node);
-		if (rightmost() == nil_node() || comp(rightmost()->data, static_cast<link_type>(new_node)->data))
+		if (rightmost() == nil_node() || key_compare(rightmost(), new_node))
 			set_rightmost(new_node);
 
 		__insert_fixup(new_node);
@@ -504,19 +507,20 @@ protected:
 		if (origin_color == __BLACK)
 			remove_fixup(tranfers_node);
 
-		if (node == leftmost()) {
+		if (--node_size == 0) {
+			set_leftmost(end().node);
+			set_rightmost(end().node);
+		}
+		if (node_size != 0 && node == leftmost()) {
 			iterator new_leftmost = position;
-			++new_leftmost;
 			set_leftmost(new_leftmost.node);
 		}
-		if (node == rightmost()) {
+		if (node_size != 0 && node == rightmost()) {
 			iterator new_rightmost = position;
-			--new_rightmost;
 			set_rightmost(new_rightmost.node);
 		}
 		++position;
 		destroy_node(static_cast<link_type>(node));
-		--node_size;
 		return position;
 	}
 
@@ -526,6 +530,16 @@ protected:
 		__destroy(node->left);
 		__destroy(node->right);
 		destroy_node(static_cast<link_type>(node));
+	}
+
+	iterator __upper_bound_aux(key_type const &key, iterator start) {
+		KeyOfValue key_of_value;
+		while (start != end()
+			&& (!comp(key, key_of_value(static_cast<link_type>(start.node)->data))
+				&& !comp(KeyOfValue()(static_cast<link_type>(start.node)->data), key))) {
+			++start;
+		}
+		return start;
 	}
 public:
 	rbtree() {
@@ -540,7 +554,7 @@ public:
 		insert_equal(other.begin(), other.end());
 	}
 
-	rbtree(rbtree && other) noexcept : rbtree() {
+	rbtree(rbtree &&other) noexcept : rbtree() {
 		sx::swap(*this, other);
 	}
 
@@ -593,23 +607,24 @@ public:
 	}
 
 	template<typename InputIterator, 
-		typename = std::enable_if_t<sx::is_input_iterator_v<InputIterator>>>
+		typename = std::enable_if_t<sx::is_input_iterator_v<InputIterator> 
+		&& sx::is_convertible_iter_type_v<InputIterator, value_type>>>
 	std::pair<iterator, bool> insert_unique(InputIterator first, InputIterator last) {
 		InputIterator iter = first;
 		std::pair<iterator, bool> ret;
 		try {
 			for ( ;iter != last; ++iter)
-				ret = insert_unique(*first);
+				ret = insert_unique(*iter);
 		} catch (...) {
 			for (; first != iter; ++first)
-				erase(*first);
+				erase(KeyOfValue()(*first));
 		}
 		return ret;
 	}
 
 	template<typename... Args>
 	std::pair<iterator, bool> emplace_unique(Args&&... args) {
-		return __insert(std::forward<Args>(args)...);
+		return __insert<true>(std::forward<Args>(args)...);
 	}
 
 	iterator insert_equal(Value const &value) {
@@ -618,21 +633,22 @@ public:
 	}
 
 	template<typename InputIterator,
-		typename = std::enable_if_t<sx::is_input_iterator_v<InputIterator>>>
+		typename = std::enable_if_t<sx::is_input_iterator_v<InputIterator>
+		&& sx::is_convertible_iter_type_v<InputIterator, value_type>>>
 	void insert_equal(InputIterator first, InputIterator last) {
 		InputIterator iter = first;
 		try {
 			for (; iter != last; ++iter)
-				insert_equal(*first);
+				insert_equal(*iter);
 		} catch (...) {
 			for (; first != iter; ++first)
-				erase(*first);
+				erase(KeyOfValue()(*first));
 		}
 	}
 
 	template<typename... Args>
 	iterator emplace_equal(Args&&... args) {
-		std::pair<iterator, bool> ret = __insert(std::forward<Args>(args)...);
+		std::pair<iterator, bool> ret = __insert<false>(std::forward<Args>(args)...);
 		return ret.first;
 	}
 	
@@ -679,15 +695,20 @@ public:
 	}
 
 	const_iterator erase(const_iterator position) {
-		iterator ret = remove(iterator(position.node, nil_node(), root()));
-		return const_iterator(ret.node, nil_node(), root());
+		iterator ret = remove(transform_iterator(position));
+		return transform_const_iterator(ret);
 	}
 
-	iterator erase(Key const &key) {
-		iterator ret = find(key);
-		if (ret != end())
-			ret = erase(ret);
+	const_iterator erase(const_iterator first, const_iterator last) {
+		const_iterator ret;
+		while (first != last)
+			ret = erase(first++);
 		return ret;
+	}
+
+	iterator erase(Key const &key) {			
+		std::pair<const_iterator, const_iterator> range = const_cast<rbtree const *>(this)->equal_range(key);
+		return transform_iterator(erase(range.first, range.second));
 	}
 
 	iterator min() {
@@ -707,7 +728,8 @@ public:
 	}
 
 	std::pair<iterator, iterator> equal_range(Key const &key) {		
-		return std::pair<iterator, iterator>(lower_bound(key), upper_bound(key));
+		iterator first = lower_bound(key);
+		return std::pair<iterator, iterator>(first, __upper_bound_aux(key, first));
 	}
 
 	std::pair<const_iterator, const_iterator> equal_range(Key const &key) const {
@@ -743,23 +765,24 @@ public:
 	}
 
 	iterator upper_bound(Key const &key) {
-		iterator ret = lower_bound(key);
-		KeyOfValue key_of_value;
-	
-		while (ret != end()
-			&& (!comp(key, key_of_value(static_cast<link_type>(ret.node)->data)) 
-				&& !comp(static_cast<link_type>(ret.node)->data, key))) {
-			++ret;
-		}
-		return ret;
+		return __upper_bound_aux(key, lower_bound(key));
 	}
 
 	const_iterator upper_bound(Key const key) const {
 		return transform_const_iterator(const_cast<rbtree *>(this)->upper_bound(key));
 	}
 
+	size_type count(Key const &key) const {
+		std::pair<const_iterator, const_iterator> range = equal_range(key);
+		return sx::distance(range.first, range.second);
+	}
+
 	static const_iterator transform_const_iterator(iterator iter) noexcept {
 		return const_iterator(iter.node, iter.nil, iter.root);
+	}
+
+	static iterator transform_iterator(const_iterator iter) noexcept {
+		return iterator(iter.node, iter.nil, iter.root);
 	}
 
 	void swap(rbtree &other) noexcept {

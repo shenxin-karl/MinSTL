@@ -1,7 +1,7 @@
 #ifndef M_UNORDERED_SET_HPP
 #define M_UNORDERED_SET_HPP
 #include "hash_table.hpp"
-#include "mtype_traits.hpp"
+#include "type_traits.hpp"
 #include <functional>
 
 namespace sx {
@@ -161,8 +161,8 @@ public:
 		return static_cast<iterator>(table.emplace_unique(std::forward<Args>(args)...));
 	}
 
-	iterator erase(key_type const &key) {
-		return static_cast<iterator>(table.erase(key));
+	size_type erase(key_type const &key) {
+		return table.erase(key);
 	}
 
 	iterator erase(iterator pos) {
@@ -348,8 +348,8 @@ public:
 		return static_cast<iterator>(table.emplace_equal(std::forward<Args>(args)...));
 	}
 
-	iterator erase(key_type const &key) {
-		return static_cast<iterator>(table.erase(key));
+	size_type erase(key_type const &key) {
+		return table.erase(key);
 	}
 
 	iterator erase(iterator pos) {

@@ -1,8 +1,8 @@
 ﻿#ifndef M_LIST_HPP
 #define M_LIST_HPP
-#include "mallocator.hpp"
-#include "miterator.hpp"
-#include "mutility.hpp"
+#include "allocator.hpp"
+#include "iterator.hpp"
+#include "utility.hpp"
 #include <exception>
 
 namespace sx {

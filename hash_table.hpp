@@ -1,9 +1,9 @@
 ﻿#ifndef M_HASH_TABLE_HPP
 #define M_HASH_TABLE_HPP
-#include "mallocator.hpp"
-#include "mutility.hpp"
-#include "miterator.hpp"
-#include "mvector.hpp"
+#include "allocator.hpp"
+#include "utility.hpp"
+#include "iterator.hpp"
+#include "vector.hpp"
 #include <utility>
 #include <cstddef>
 
@@ -180,13 +180,13 @@ private:
     friend class iterator;
     friend class const_iterator;
 private:
-    static Allocator            allocator;      /* 结点分配器 */
-    hasher                      hash;           /* 哈希函数 */
-    key_equal                   equals;         /* 判断 key 是否相等 */
-    ExtractKey                  get_key;        /* 获取 key 键 */
-    vector<node *>              buckets;        /* 哈希桶 */ 
-    size_type                   num_elements;   /* 元素数量 */
-    size_type                   first_index;    /* 指向第一个使用的桶 */
+    static Allocator		allocator;      /* 结点分配器 */
+    hasher					hash;           /* 哈希函数 */
+    key_equal				equals;         /* 判断 key 是否相等 */
+    ExtractKey				get_key;        /* 获取 key 键 */
+    vector<node *>			buckets;        /* 哈希桶 */ 
+    size_type				num_elements;   /* 元素数量 */
+    size_type				first_index;    /* 指向第一个使用的桶 */
 protected:
     static constexpr unsigned long prime_list[28] = 
     {
@@ -215,13 +215,13 @@ protected:
     }
 
     template<typename... Args>
-    node *create_node(Args&&... args) {
+    static node *create_node(Args&&... args) {
         node *ptr = get_node();
         allocator.construct(ptr, std::forward<Args>(args)...);
         return ptr;
     }
 
-    void destroy_node(node *ptr) {
+	static void destroy_node(node *ptr) {
         allocator.destroy(ptr);
         put_node(ptr);
     }
@@ -249,47 +249,64 @@ private:
         if (index < first_index)
             first_index = index;
 
-        if (IsUnique) {
-            node *curr = buckets[index];
-            while (curr != nullptr) {
-                if (equals(ExtractKey()(curr->data), ExtractKey()(val))) 
-                    return std::pair<iterator, bool>(iterator(curr, this), false); 
-            }
-        }
+		node *curr = buckets[index];
+		node *prev = nullptr;
+		while (curr != nullptr) {
+			if (equals(ExtractKey()(curr->data), ExtractKey()(val)))
+				break;
+
+			prev = curr;
+			curr = curr->next;
+		}
+        
+		if (curr != nullptr && IsUnique)
+			return { iterator(curr, this), false };
 
         node *new_node = create_node(val);
-        new_node->next = buckets[index];
-        buckets[index] = new_node;
+		new_node->next = curr;
         ++num_elements;
+
+		if (prev != nullptr)
+			prev->next = new_node;
+		else
+			buckets[index] = new_node;
+
         return std::pair<iterator, bool>(iterator(new_node, this), true);
     }
 
-    iterator remove(key_type const &key) {
+	size_type remove(key_type const &key) {
 		unsigned long index = hash_index(key);
-        node *curr = buckets[index];
-        node *prev = nullptr;
-        while (curr != nullptr) {
-            if (equals(key, ExtractKey()(curr->data)))
-                break;
-            prev = curr;
-            curr = curr->next;
-        }
-        if (curr == nullptr)
-            return end();
-        
-        if (prev == nullptr) 
-            buckets[index] = curr->next;
-        else
-            prev->next = curr->next;
+		
+		node *curr = buckets[index];
+		node *prev = nullptr;
+		node *del_list = nullptr;
+		while (curr != nullptr) {
+			if (equals(get_key(curr->data), key)) {
+				del_list = curr;
+				node *right_prev = nullptr;
+				while (curr != nullptr && equals(get_key(curr->data), key)) {
+					right_prev = curr;
+					curr = curr->next;
+				}
+				right_prev->next = nullptr;
+				prev->next = curr;
+				break;
+			}
+			prev = curr;
+			curr = curr->next;
+		}
+		
+		size_type del_size = 0;
+		while (del_list != nullptr) {
+			node *del_node = del_list;
+			del_list = del_list->next;
+			destroy_node(del_node);
+			++del_size;
+		}
 
-        destroy_node(curr);
-        if (index == first_index && prev == nullptr) {
-            while (first_index != bucket_count() - 1 && buckets[first_index] != nullptr)
-                ++first_index;
-        }
-        --num_elements;
-        return ++iterator(prev, this);
-    }
+		num_elements -= del_size;
+		return del_size;
+	}
 public:
     hash_table(HashFunc const &hash_func, EqualKey const &euqal_func)
         : hash(hash_func), equals(euqal_func), num_elements(0), first_index(0) { 
@@ -395,6 +412,13 @@ public:
 		return const_iterator(nullptr, this);
     }
 
+	template<typename T,
+		typename = std::enable_if_t<std::is_convertible_v<T, value_type>>>
+	iterator insert_unique(T const &val) {
+		resize(num_elements + 1);
+		return __insert<true>(val);
+	}
+
     std::pair<iterator, bool> insert_unique(value_type const &val) {
         resize(num_elements + 1);
         return __insert<true>(val);
@@ -407,6 +431,13 @@ public:
 		for ( ; first != last; ++first)
 			__insert<true>(*first);
     }
+
+	template<typename T,
+		typename = std::enable_if_t<std::is_convertible_v<T, value_type>>>
+	iterator insert_equal(T const &val) {
+		resize(num_elements + 1);
+		return __insert<false>(val);
+	}
 
     iterator insert_equal(value_type const &val) {
         resize(num_elements + 1);
@@ -435,7 +466,7 @@ public:
         return __insert<false>(std::forward<Args>(args)...).first; 
     }
 
-    iterator erase(key_type const &key) {
+    size_type erase(key_type const &key) {
         return remove(key);
     }
 
@@ -463,7 +494,7 @@ public:
 
 	iterator erase(iterator first, iterator last) {
 		if (first == end() || first == last)
-			return last;
+			return end();
 
 		vector<node *> carry;
 		size_type first_idx = bucket_index(first.curr->data);
@@ -484,10 +515,8 @@ public:
 			prev->next = nullptr;
 
 		for (size_type i = first_idx; i != last_idx; ++i) {
-			if (buckets[i] != nullptr) {
-				carry.push_back(buckets[i]);
-				buckets[i] = nullptr;
-			}
+			carry.push_back(buckets[i]);
+			buckets[i] = nullptr;
 		}
 
 		for (auto ptr : carry) {
@@ -500,17 +529,18 @@ public:
 		}
 
 		if (last_idx != bucket_count()) {
-			node *last_ptr = buckets[last_idx];
+			node *left_ptr = buckets[last_idx];
 			node *last_curr = last.curr;
-			buckets[last_idx] = last.curr;
-			while (last_ptr != last_curr) {
-				node *del_node = last_ptr;
-				last_ptr = last_ptr->next;
+			buckets[last_idx] = last_curr;
+			while (left_ptr != last_curr) {
+				node *del_node = left_ptr;
+				left_ptr = left_ptr->next;
 				destroy_node(del_node);
 				--num_elements;
 			}
 		}
-		return last;
+
+		return iterator(buckets[last_idx], this);
 	}
 
 	size_type count(key_type const &key) const {
@@ -536,17 +566,14 @@ public:
 	}
 
 	std::pair<iterator, iterator> equal_range(key_type const &key) const {
-		size_type index = hash_index(key);
-		node *first = buckets[index];
-		node *last  = index != bucket_count() - 1 ? first + 1 : nullptr;
+		iterator first = find(key);
+		iterator last = first;
 
-		for (size_t i = index + 1; i < bucket_count() && last == nullptr; ++i, ++last)
-			;
-
-		return { iterator(const_cast<node *>(first), const_cast<hash_table *>(this)), 
-				 iterator(const_cast<node *>(last), const_cast<hash_table *>(this)) };
+		while (last != static_cast<iterator>(end()) && equals(get_key(*last), key))
+			++last;
+		
+		return { first, last };
 	}
-
 
 	void resize(size_type num_elements_hint) {
 		const size_type old = bucket_count();

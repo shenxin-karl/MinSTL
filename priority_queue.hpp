@@ -1,8 +1,8 @@
 ﻿#ifndef M_PRIORITY_QUEUE_HPP
 #define M_PRIORITY_QUEUE_HPP
-#include "mvector.hpp"
+#include "vector.hpp"
 #include "heap_algorithm.hpp"
-#include "miterator.hpp"
+#include "iterator.hpp"
 
 namespace sx {
 

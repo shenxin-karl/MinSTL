@@ -1,6 +1,6 @@
 #ifndef M_STACK_HPP
 #define M_STACK_HPP
-#include "mdeque.hpp"
+#include "deque.hpp"
 #include <utility>
 
 namespace sx {

@@ -1,7 +1,7 @@
-#ifndef M_SET_HPP
+ï»¿#ifndef M_SET_HPP
 #define M_SET_HPP
 #include "rbtree.hpp"
-#include "mutility.hpp"
+#include "utility.hpp"
 #include <utility>
 
 namespace sx {
@@ -41,13 +41,14 @@ public:
 	using iterator			= typename Container::const_iterator;
 	using const_iterator	= typename Container::const_iterator;
 private:
-	Container container;			/* µ×²ãºìºÚÊ÷ÈÝÆ÷ */
+	Container container;			/* åº•å±‚çº¢é»‘æ ‘å®¹å™¨ */
 public:
 	set() : container(Compare{}) {}
 	explicit set(Compare const &comp) : container(comp) {}
 
 	template<typename InputIterator, 
-		typename = std::enable_if_t<sx::is_input_iterator_v<InputIterator>>>
+		typename = std::enable_if_t<sx::is_input_iterator_v<InputIterator>
+		&& sx::is_convertible_iter_type_v<InputIterator, value_type>>>
 	set(InputIterator first, InputIterator last) {
 		container.insert_unique(first, last);
 	}
@@ -103,7 +104,7 @@ public:
 
 	template<typename... Args>
 	std::pair<const_iterator, bool> emplace(Args&&... args) {
-		std::pair<typename Container::const_iterator, bool> ret = container.emplace_unique(std::forward<Args>(args)...);
+		std::pair<typename Container::iterator, bool> ret = container.emplace_unique(std::forward<Args>(args)...);
 		return std::pair<const_iterator, bool>(container.transform_const_iterator(ret.first), ret.second);
 	}
 
@@ -113,17 +114,25 @@ public:
 	}
 
 	template<typename InputIterator,
-		typename = std::enable_if_t<sx::is_input_iterator_v<InputIterator>>>
+		typename = std::enable_if_t<sx::is_input_iterator_v<InputIterator>
+		&& sx::is_convertible_iter_type_v<InputIterator, value_type>>>
 	void insert(InputIterator first, InputIterator last) {
 		container.insert_unique(first, last);
 	}
 
-	void erase(const_iterator position) {
-		container.erase(position);
+	const_iterator erase(const_iterator position) {
+		return container.erase(position);
 	}
 
-	void erase(value_type const &val) {
-		container.erase(val);
+	const_iterator erase(value_type const &val) {
+		return container.transform_const_iterator(container.erase(val));
+	}
+
+	const_iterator erase(const_iterator first, const_iterator last) {
+		while (first != last) 
+			container.erase(first++);
+
+		return last;
 	}
 
 	const_iterator max() const noexcept{
@@ -144,6 +153,10 @@ public:
 
 	const_iterator upper_bound(value_type const &val) const {
 		return container.upper_bound(val);
+	}
+
+	std::pair<const_iterator, const_iterator> equal_range(value_type const &val) const {
+		return container.equal_range(val);
 	}
 
 	void swap(set &other) noexcept {
@@ -177,14 +190,15 @@ public:
 	using iterator			= typename Container::const_iterator;
 	using const_iterator	= typename Container::const_iterator;
 private:
-	Container container;			/* µ×²ãºìºÚÊ÷ÈÝÆ÷ */
+	Container container;			/* åº•å±‚å®¹å™¨ */
 public:
 	multiset() : container(Compare{}) {}
 
 	explicit multiset(Compare const &comp) : container(comp) {}
 
 	template<typename InputIterator, 
-		typename = std::enable_if_t<sx::is_input_iterator_v<InputIterator>>>
+		typename = std::enable_if_t<sx::is_input_iterator_v<InputIterator>
+		&& sx::is_convertible_iter_type_v<InputIterator, value_type>>>
 		multiset(InputIterator first, InputIterator last) {
 		container.insert_equal(first, last);
 	}
@@ -240,7 +254,8 @@ public:
 
 	template<typename... Args>
 	const_iterator emplace(Args&&... args) {
-		return container.emplace_equal(std::forward<Args>(args)...);
+		typename Container::iterator ret = container.emplace_equal(std::forward<Args>(args)...);
+		return container.transform_const_iterator(ret);
 	}
 
 	const_iterator insert(const_iterator position, value_type const &val) {
@@ -249,17 +264,23 @@ public:
 	}
 
 	template<typename InputIterator,
-		typename = std::enable_if_t<sx::is_input_iterator_v<InputIterator>>>
+		typename = std::enable_if_t<sx::is_input_iterator_v<InputIterator>
+		&& sx::is_convertible_iter_type_v<InputIterator, value_type>>>
 	void insert(InputIterator first, InputIterator last) {
 		container.insert_equal(first, last);
 	}
 
-	void erase(const_iterator position) {
-		container.erase(position);
+	const_iterator erase(const_iterator position) {
+		return container.erase(position);
 	}
 
-	void erase(value_type const &val) {
-		container.erase(val);
+	const_iterator erase(value_type const &val) {
+		typename Container::iterator ret = container.erase(val);
+		return container.transform_const_iterator(ret);
+	}
+
+	const_iterator erase(const_iterator first, const_iterator last) {
+		return container.erase(first, last);
 	}
 
 	const_iterator find(value_type const &val) const {
@@ -283,7 +304,7 @@ public:
 	}
 
 	std::pair<const_iterator, const_iterator> equal_range(value_type const &val) const {
-		return std::pair<const_iterator, const_iterator>(lower_bound(val), upper_bound(val));
+		return container.equal_range(val);
 	}
 
 	void swap(multiset &other) noexcept {
@@ -294,6 +315,7 @@ public:
 		first.swap(second);
 	}
 };
+
 }
 
 #endif // !M_SET_HPP
