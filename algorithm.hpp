@@ -59,7 +59,7 @@ adjecent_difference(InputIterator first, InputIterator last, OutputIterator resu
 	if (first == last)
 		return result;
 
-	using value_t = iterator_traits<InputIterator>::value_type;
+	using value_t = typename iterator_traits<InputIterator>::value_type;
 	value_t value = *first;
 	while (++first != last) {
 		value_t tmp = *first;
@@ -77,7 +77,7 @@ adjecent_difference(InputIterator first, InputIterator last, OutputIterator resu
 	if (first == last)
 		return result;
 
-	using value_t = iterator_traits<InputIterator>::value_type;
+	using value_t = typename iterator_traits<InputIterator>::value_type;
 	value_t value = *first;
 	while (++first != last) {
 		value_t tmp = *first;
