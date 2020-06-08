@@ -65,6 +65,9 @@ struct __rbtree_node : public __rbtree_node_base {
 public:
 	__rbtree_node(T const &val) : data(val) {}
 	__rbtree_node(T &&val) noexcept(noexcept(T(std::declval<T>()))) : data(std::move(val)) {}
+
+	template<typename... Args>
+	__rbtree_node(Args&&... args) : data(std::forward<Args>(args)...) { }
 };
 
 
@@ -609,17 +612,15 @@ public:
 	template<typename InputIterator, 
 		typename = std::enable_if_t<sx::is_input_iterator_v<InputIterator> 
 		&& sx::is_convertible_iter_type_v<InputIterator, value_type>>>
-	std::pair<iterator, bool> insert_unique(InputIterator first, InputIterator last) {
+	void insert_unique(InputIterator first, InputIterator last) {
 		InputIterator iter = first;
-		std::pair<iterator, bool> ret;
 		try {
 			for ( ;iter != last; ++iter)
-				ret = insert_unique(*iter);
+				insert_unique(*iter);
 		} catch (...) {
 			for (; first != iter; ++first)
 				erase(KeyOfValue()(*first));
 		}
-		return ret;
 	}
 
 	template<typename... Args>
