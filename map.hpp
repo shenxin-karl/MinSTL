@@ -400,10 +400,20 @@ public:
 														 container.transform_const_iterator(ret.second));
 	}
 
-	friend void swap(multimap<Key, Value, Compare, Alloc> &first, multimap<Key, Value, Compare, Alloc> &second) noexcept {
-		return first.swap(second);
+	iterator max() noexcept {
+		return container.max();
+	}
+
+	iterator min() noexcept {
+		return container.min();
 	}
 };
+
+
+template<typename Key, typename Value, typename Compare, typename Alloc>
+void swap(multimap<Key, Value, Compare, Alloc> &first, multimap<Key, Value, Compare, Alloc> &second) noexcept {
+	return first.swap(second);
+}
 
 }
 
