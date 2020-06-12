@@ -507,21 +507,25 @@ protected:
 			origin_node->left->parent = origin_node;
 		}
 
+		if (--node_size == 0) {
+			set_leftmost(nil_node());
+			set_rightmost(nil_node());
+		} else if (node_size != 0 && node == leftmost() && node == rightmost()) {
+			iterator new_leftmost = position;
+			++new_leftmost;
+			set_leftmost(new_leftmost.node);
+			set_rightmost(new_leftmost.node);
+		} else {
+			if (node_size != 0 && node == leftmost())
+				set_leftmost((position++).node);
+
+			if (node_size != 0 && node == rightmost())
+				set_rightmost((position--).node);
+		}
+
 		if (origin_color == __BLACK)
 			remove_fixup(tranfers_node);
 
-		if (--node_size == 0) {
-			set_leftmost(end().node);
-			set_rightmost(end().node);
-		}
-		if (node_size != 0 && node == leftmost()) {
-			iterator new_leftmost = position;
-			set_leftmost(new_leftmost.node);
-		}
-		if (node_size != 0 && node == rightmost()) {
-			iterator new_rightmost = position;
-			set_rightmost(new_rightmost.node);
-		}
 		++position;
 		destroy_node(static_cast<link_type>(node));
 		return position;
@@ -707,9 +711,16 @@ public:
 		return ret;
 	}
 
-	iterator erase(Key const &key) {			
+	size_type erase(Key const &key) {			
 		std::pair<const_iterator, const_iterator> range = const_cast<rbtree const *>(this)->equal_range(key);
-		return transform_iterator(erase(range.first, range.second));
+		size_type cnt = 0;
+
+		while (range.first != range.second) {
+			++cnt;
+			erase(range.first++);
+		}
+
+		return cnt;
 	}
 
 	iterator min() {
@@ -740,25 +751,23 @@ public:
 	}
 
 	iterator lower_bound(Key const &key) {
+		base_ptr old_pos = nil_node();
 		base_ptr node = root();
-		base_ptr before = nil_node();
 		KeyOfValue key_of_value;
 
 		while (node != nil_node()) {
-			before = node;
 			bool test1 = comp(key, key_of_value(static_cast<link_type>(node)->data));
 			bool test2 = comp(key_of_value(static_cast<link_type>(node)->data), key);
-			if (!test1 && !test2)
-				break;
-			else if (test1)
+			if (!test1 && !test2) {
+				old_pos = node;
+				node = node->left;
+			} else if (test1)
 				node = node->left;
 			else
 				node = node->right;
 		}
 
-		if (node != nil_node())
-			before = node;
-		return iterator(before, nil_node(), root());
+		return iterator(old_pos, nil_node(), root());
 	}
 
 	const_iterator lower_bound(Key const key) const {
@@ -766,7 +775,24 @@ public:
 	}
 
 	iterator upper_bound(Key const &key) {
-		return __upper_bound_aux(key, lower_bound(key));
+		base_ptr old_pos = nil_node();
+		base_ptr node = root();
+		KeyOfValue key_of_value;
+
+		while (node != nil_node()) {
+			bool test1 = comp(key, key_of_value(static_cast<link_type>(node)->data));
+			bool test2 = comp(key_of_value(static_cast<link_type>(node)->data), key);
+			if (!test1 && !test2) {
+				old_pos = old_pos == nil_node() ? node->parent : old_pos;
+				node = node->right;
+			} else if (test1) {
+				old_pos = node;
+				node = node->left;
+			} else
+				node = node->right;
+		}
+
+		return iterator(old_pos, nil_node(), root());
 	}
 
 	const_iterator upper_bound(Key const key) const {
