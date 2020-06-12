@@ -124,8 +124,8 @@ public:
 		return container.erase(position);
 	}
 
-	const_iterator erase(value_type const &val) {
-		return container.transform_const_iterator(container.erase(val));
+	size_type erase(value_type const &val) {
+		return container.erase(val);
 	}
 
 	const_iterator erase(const_iterator first, const_iterator last) {
@@ -274,9 +274,8 @@ public:
 		return container.erase(position);
 	}
 
-	const_iterator erase(value_type const &val) {
-		typename Container::iterator ret = container.erase(val);
-		return container.transform_const_iterator(ret);
+	size_type erase(value_type const &val) {
+		return container.erase(val);
 	}
 
 	const_iterator erase(const_iterator first, const_iterator last) {

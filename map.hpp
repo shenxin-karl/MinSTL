@@ -154,7 +154,7 @@ public:
 		return container.erase(position);
 	}
 
-	iterator erase(key_type const &key) {
+	size_type erase(key_type const &key) {
 		return container.erase(key);
 	}
 
@@ -352,14 +352,7 @@ public:
 	}
 
 	size_type erase(key_type const &key) {
-		size_type count = 0;
-		std::pair<iterator, iterator> range = equal_range(key);
-		for (iterator iter = range.first; iter != range.second;) {
-			++count;
-			erase(iter++);
-		}
-
-		return count;
+		return container.erase(key);
 	}
 
 	iterator erase(iterator postion, key_type const &key) {
