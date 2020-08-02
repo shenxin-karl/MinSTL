@@ -209,6 +209,80 @@ T *end(T (&arr)[N]) {
 return arr + N;
 }
 
+template<typename Iterator>
+class reverse_iterator {
+	using self 				= reverse_iterator<Iterator>;
+public:
+	using iterator_category = typename Iterator::iterator_category;
+	using pointer 			= typename Iterator::pointer;
+	using reference 		= typename Iterator::reference;
+	using const_pointer 	= typename Iterator::const_pointer;
+	using const_reference   = typename Iterator::const_reference;
+	using difference_type 	= typename Iterator::difference_type;
+	using size_type			= typename Iterator::size_type;
+private:
+	Iterator  curr;
+public:
+	reverse_iterator() {}
+	explicit reverse_iterator(Iterator iter) : curr(iter) {}
+	reverse_iterator(reverse_iterator const &) = default;
+	reverse_iterator(reverse_iterator &&) = default;
+	reverse_iterator &operator=(reverse_iterator const &) = default;
+	reverse_iterator &operator=(reverse_iterator &&) = default;
+	~reverse_iterator() = default;
+public:
+	reference operator*() {
+		Iterator tmp = curr;
+		return *(--tmp);
+	}
+
+	pointer operator->() {
+		return &(this->operator*());
+	}
+
+	self &operator++() {
+		--curr;
+		return *this;
+	}
+
+	self operator++(int) {
+		self tmp = curr;
+		--curr;
+		return tmp;
+	}
+
+	self &operator--() {
+		++curr;
+		return *this;
+	}
+
+	self operator--() {
+		self tmp = curr;
+		++curr;
+		return tmp;
+	}
+
+	self operator+(int n) {
+		self tmp = curr;
+		return (tmp -= n);
+	}
+
+	self &operator+=(int n) {
+		return *(*this -= n);
+	}
+
+	self operator-(int n) {
+		self tmp = curr;
+		return (tmp -= n);
+	}
+
+	self &operator-=(int n) {
+		return *(*this += n);
+	}
+
+	
+};
+
 }
 
 
