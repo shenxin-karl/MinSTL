@@ -25,26 +25,29 @@
 * `multi_map` 完成
 * `unordered_set` 完成
 * `unordered_multiset` 完成
-* onordered_map 完成
-* onordered_multimap 完成
+* `onordered_map` 完成
+* `onordered_multimap` 完成
 
 ## 底层容器
 
 * `rbtree` 完成
 * `hash_table` 完成
 
-## 适配器
+## 容器适配器
 
 * `stack` 完成
-
 * `queue` 完成
 * `priority_queue` 完成
 
-## 空间适配器
+## 空间分配器
 
 * `allocator` 完成
 * `default_alloc_template` 完成
 * `malloc_alloc_template` 完成
+
+## 迭代器适配器
+
+* `reverse_iterator` 完成
 
 # 算法
 
