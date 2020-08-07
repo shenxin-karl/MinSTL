@@ -15,25 +15,73 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="default_alloc_template.hpp">
+    <ClInclude Include="malloc_alloc_template.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="malloc_alloc_template.hpp">
+    <ClInclude Include="map.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="priority_queue.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="queue.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="rbtree.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="set.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="stack.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="type_traits.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="typelist.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="unordered_map.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="unordered_set.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="utility.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="vector.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="algorithm.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="allocator.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="construct.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="mallocator.hpp">
+    <ClInclude Include="default_alloc_template.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="mtype_traits.hpp">
+    <ClInclude Include="deque.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="mvector.hpp">
+    <ClInclude Include="forward_list.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="miterator.hpp">
+    <ClInclude Include="hash_table.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="heap_algorithm.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="iterator.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="list.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

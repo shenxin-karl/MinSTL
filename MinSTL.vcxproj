@@ -19,13 +19,29 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="mallocator.hpp" />
+    <ClInclude Include="algorithm.hpp" />
+    <ClInclude Include="allocator.hpp" />
     <ClInclude Include="construct.hpp" />
     <ClInclude Include="default_alloc_template.hpp" />
+    <ClInclude Include="deque.hpp" />
+    <ClInclude Include="forward_list.hpp" />
+    <ClInclude Include="hash_table.hpp" />
+    <ClInclude Include="heap_algorithm.hpp" />
+    <ClInclude Include="iterator.hpp" />
+    <ClInclude Include="list.hpp" />
     <ClInclude Include="malloc_alloc_template.hpp" />
-    <ClInclude Include="miterator.hpp" />
-    <ClInclude Include="mtype_traits.hpp" />
-    <ClInclude Include="mvector.hpp" />
+    <ClInclude Include="map.hpp" />
+    <ClInclude Include="priority_queue.hpp" />
+    <ClInclude Include="queue.hpp" />
+    <ClInclude Include="rbtree.hpp" />
+    <ClInclude Include="set.hpp" />
+    <ClInclude Include="stack.hpp" />
+    <ClInclude Include="typelist.hpp" />
+    <ClInclude Include="type_traits.hpp" />
+    <ClInclude Include="unordered_map.hpp" />
+    <ClInclude Include="unordered_set.hpp" />
+    <ClInclude Include="utility.hpp" />
+    <ClInclude Include="vector.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />

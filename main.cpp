@@ -1,13 +1,17 @@
 #include <iostream>
 #include <cstdlib>
-#include "mallocator.hpp"
+#include <utility>
+#include "allocator.hpp"
 #include <vector>
+#include "rbtree.hpp"
+#include "utility.hpp"
+#include "set.hpp"
+#include "map.hpp"
+#include "hash_table.hpp"
 
-int main(void)
-{
-	using vec_iter = std::vector<int>::iterator;
-	using int_type = int;
 
-	std::cout << typeid(int_type()).name() << std::endl;
+int main(void) {
+	std::cout << "hello world\n" << std::endl;
 	system("pause");
 }
+
