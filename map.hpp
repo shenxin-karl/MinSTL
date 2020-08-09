@@ -13,20 +13,9 @@ template<typename Key, typename Value,
 class map;
 
 template<typename Key, typename Value,
-	typename Compare, typename Alloc>
-void swap(map<Key, Value, Compare, Alloc> &, map<Key, Value, Compare, Alloc> &) noexcept;
-
-
-template<typename Key, typename Value,
 	typename Compare = std::less<Key>,
 	typename Alloc = sx::allocator<std::pair<const Key, Value>>>
 class multimap;
-
-
-template<typename Key, typename Value,
-	typename Compare, typename Alloc>
-void swap(multimap<Key, Value, Compare, Alloc> &, multimap<Key, Value, Compare, Alloc> &) noexcept;
-
 
 
 template<typename Key, typename Value,
@@ -47,7 +36,7 @@ public:
 		}
 	};
 	
-	/* ÌáÈ¡ value ÖÐµÄ key Öµ */
+	/* ï¿½ï¿½È¡ value ï¿½Ðµï¿½ key Öµ */
 	struct key_of_value {
 		key_type const &operator()(value_type const &par) const {
 			return par.first;
@@ -65,7 +54,7 @@ public:
 	using iterator			= typename Container::iterator;
 	using const_iterator	= typename Container::const_iterator;
 private:
-	Container container;		/* µ×²ãºìºÚÊ÷ÈÝÆ÷ */
+	Container container;		/* ï¿½×²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ */
 public:
 	map() : container(Compare()) {}
 
@@ -218,10 +207,6 @@ public:
 		std::pair<iterator, bool> result = insert(value_type(key, Value()));
 		return (*result.first).second;
 	}
-
-	friend void swap(map<Key, Value, Compare, Alloc> &first, map<Key, Value, Compare, Alloc> &second) noexcept {
-		return first.swap(second);
-	}
 };
 
 
@@ -244,7 +229,7 @@ public:
 		}
 	};
 	
-	/* ÌáÈ¡ value ÖÐµÄ key Öµ */
+	/* ï¿½ï¿½È¡ value ï¿½Ðµï¿½ key Öµ */
 	struct key_of_value {
 		key_type const &operator()(value_type const &par) const {
 			return par.first;
@@ -262,7 +247,7 @@ public:
 	using iterator			= typename Container::iterator;
 	using const_iterator	= typename Container::const_iterator;
 private:
-	Container container;		/* µ×²ãºìºÚÊ÷ÈÝÆ÷ */
+	Container container;		/* ï¿½×²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ */
 public:
 	multimap() : container(Compare()) {}
 
@@ -402,11 +387,6 @@ public:
 	}
 };
 
-
-template<typename Key, typename Value, typename Compare, typename Alloc>
-void swap(multimap<Key, Value, Compare, Alloc> &first, multimap<Key, Value, Compare, Alloc> &second) noexcept {
-	return first.swap(second);
-}
 
 }
 

@@ -65,8 +65,8 @@ void construct() {
 }
 #endif
 
-using iterator = sx::map<int, int>::iterator;
-using const_iterator = sx::map<int, int>::const_iterator;
+//using iterator = sx::map<int, int>::iterator;
+//using const_iterator = sx::map<int, int>::const_iterator;
 
 #if 0
 void insert() {
@@ -237,7 +237,7 @@ void multi_find() {
 		cout << (*result).first << endl;
 }
 #endif
-
+#if 0
 int main() {
 	//construct();
 	//insert();
@@ -253,3 +253,4 @@ int main() {
 	cout << endl;
 	system("pause");
 }
+#endif

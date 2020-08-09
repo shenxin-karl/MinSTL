@@ -9,16 +9,22 @@
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
+    <Filter Include="测试文件">
+      <UniqueIdentifier>{b3b18579-8637-44c9-80a2-64d128b9b607}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="test_vector.cpp">
+      <Filter>测试文件</Filter>
+    </ClCompile>
     <ClCompile Include="test_map.cpp">
-      <Filter>源文件</Filter>
+      <Filter>测试文件</Filter>
     </ClCompile>
     <ClCompile Include="test_set.cpp">
-      <Filter>源文件</Filter>
+      <Filter>测试文件</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

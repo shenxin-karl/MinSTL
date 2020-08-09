@@ -28,7 +28,7 @@ public:
 	using iterator			= typename hashtable::const_iterator;
 	using const_iterator	= typename hashtable::const_iterator;
 public:
-	hashtable	table;		/* µ×²ã hashtable ÈÝÆ÷ */
+	hashtable	table;		/* ï¿½×²ï¿½ hashtable ï¿½ï¿½ï¿½ï¿½ */
 public:
 	unordered_set() : table(100, HashFunc(), EqualFunc()) { }
 
@@ -215,7 +215,7 @@ public:
 	using iterator			= typename hashtable::const_iterator;
 	using const_iterator	= typename hashtable::const_iterator;
 public:
-	hashtable	table;		/* µ×²ã hashtable ÈÝÆ÷ */
+	hashtable	table;		/* ï¿½×²ï¿½ hashtable ï¿½ï¿½ï¿½ï¿½ */
 public:
 	unordered_multiset() : table(100, HashFunc(), EqualFunc()) { }
 

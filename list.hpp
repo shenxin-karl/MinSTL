@@ -16,8 +16,6 @@ struct __link_node;
 template<typename T, typename Alloc = sx::allocator<T>>
 class list;
 
-template<typename T, typename Alloc>
-void swap(list<T, Alloc> &first, list<T, Alloc> &second) noexcept;
 
 template<typename T>
 struct __link_node {
@@ -90,9 +88,6 @@ public:
 
 template<typename T, typename Alloc>
 class list : public sx::comparetor<list<T, Alloc> {
-	template<typename Type, typename AllocType>
-	friend void swap(list<Type, AllocType> &, list<Type, AllocType> &) noexcept;
-
 	using Allocator = decltype(sx::transform_alloator_type<T, __link_node<T>>(Alloc{}));
 public: 
     using value_type            = T;
@@ -195,13 +190,13 @@ public:
 	}
 
 	list &operator=(list other) {
-		sx::swap(*this, other);
+		swap(other);
 		return *this;
 	}
 
 	list &operator=(list &&other) {
 		list tmp = std::move(other);
-		sx::swap(*this, tmp);
+		swap(tmp);
 		return *this;
 	}
 
@@ -438,22 +433,15 @@ public:
         swap(counter[fill-1]);
     }
 
-    void swap(list &other) {
-        sx::swap(*this, other);
-    }
-
+	void swap(list &other) noexcept {
+		using std::swap;
+		swap(head_node, other.head_node);
+		swap(node_size, other.node_size);
+	}
 };
 
 template<typename T, typename Alloc>
 typename list<T, Alloc>::Allocator list<T, Alloc>::allocator;
-
-
-template<typename T, typename Alloc>
-void swap(list<T, Alloc> &first, list<T, Alloc> &second) noexcept {
-	using std::swap;
-	swap(first.head_node, second.head_node);
-    swap(first.node_size, second.node_size);
-}
 
 
 }

@@ -2,6 +2,8 @@
 #define M_ITERATOR_HPP
 #include <cstddef>
 #include <type_traits>
+#include <iostream>
+#include "type_traits.hpp"
 
 namespace sx {
 
@@ -201,35 +203,36 @@ public:
 
 template<typename T, std::size_t N> constexpr
 T *begin(T (&arr)[N]) {
-return arr;
+	return arr;
 }
 
 template<typename T, std::size_t N> constexpr
 T *end(T (&arr)[N]) {
-return arr + N;
+	return arr + N;
 }
 
+
 template<typename Iterator>
-class reverse_iterator {
-	using self 				= reverse_iterator<Iterator>;
+class __reverse_iterator;
+
+template<typename Iterator>
+class __reverse_iterator {
+	using self 				= __reverse_iterator<Iterator>;
 public:
-	using iterator_category = typename Iterator::iterator_category;
-	using pointer 			= typename Iterator::pointer;
-	using reference 		= typename Iterator::reference;
-	using const_pointer 	= typename Iterator::const_pointer;
-	using const_reference   = typename Iterator::const_reference;
-	using difference_type 	= typename Iterator::difference_type;
-	using size_type			= typename Iterator::size_type;
+	using iterator_category = typename iterator_traits<Iterator>::iterator_category;
+	using pointer 			= typename iterator_traits<Iterator>::pointer;
+	using reference 		= typename iterator_traits<Iterator>::reference;
+	using difference_type 	= typename iterator_traits<Iterator>::difference_type;
 private:
 	Iterator  curr;
 public:
-	reverse_iterator() {}
-	explicit reverse_iterator(Iterator iter) : curr(iter) {}
-	reverse_iterator(reverse_iterator const &) = default;
-	reverse_iterator(reverse_iterator &&) = default;
-	reverse_iterator &operator=(reverse_iterator const &) = default;
-	reverse_iterator &operator=(reverse_iterator &&) = default;
-	~reverse_iterator() = default;
+	__reverse_iterator() {}
+	explicit __reverse_iterator(Iterator iter) : curr(iter) {}
+	__reverse_iterator(__reverse_iterator const &) = default;
+	__reverse_iterator(__reverse_iterator &&) = default;
+	__reverse_iterator &operator=(__reverse_iterator const &) = default;
+	__reverse_iterator &operator=(__reverse_iterator &&) = default;
+	~__reverse_iterator() = default;
 public:
 	reference operator*() {
 		Iterator tmp = curr;
@@ -256,7 +259,7 @@ public:
 		return *this;
 	}
 
-	self operator--() {
+	self operator--(int) {
 		self tmp = curr;
 		++curr;
 		return tmp;
@@ -280,10 +283,20 @@ public:
 		return *(*this += n);
 	}
 
-	
+	template<typename = std::enable_if_t<sx::has_operator_equal_v<Iterator>>>
+	friend bool operator==(self const &first, self const &second) noexcept {
+		return first.curr == second.curr;
+	}
+
+	template<typename = std::enable_if_t<sx::has_operator_not_equal_v<Iterator>>>
+	friend bool operator!=(self const &first, self const &second) noexcept {
+		return !(first == second);
+	}
 };
 
 }
+
+
 
 
 

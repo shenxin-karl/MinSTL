@@ -1,4 +1,4 @@
-﻿#ifndef M_HEAP_ALGORITHM_HPP
+﻿﻿#ifndef M_HEAP_ALGORITHM_HPP
 #define M_HEAP_ALGORITHM_HPP
 #include "miterator.hpp"
 #include <utility>

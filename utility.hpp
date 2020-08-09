@@ -4,7 +4,7 @@
 namespace sx {
 
 
-/* 容器比较器, 为派生类提供 比较操作符 */
+/* 锟斤拷锟斤拷锟饺斤拷锟斤拷, 为锟斤拷锟斤拷锟斤拷锟结供 锟饺较诧拷锟斤拷锟斤拷 */
 template<typename Derived>
 struct comparetor {
 	friend bool operator==(Derived const &first, Derived const &second) noexcept {
@@ -62,6 +62,10 @@ struct comparetor {
 
 	friend bool operator>=(Derived const &first, Derived const &second) noexcept {
 		return !(first < second);
+	}
+
+	friend void swap(Derived &first, Derived &second) noexcept {
+		first.swap(second);
 	}
 };
 

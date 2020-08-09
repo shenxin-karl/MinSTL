@@ -46,53 +46,45 @@ ForwardIter uninitialized_fill_n_aux(ForwardIter, std::size_t, T const &, std::f
 
 
 template<typename T, typename... Args> inline
-void construct(T *ptr, Args&&... args)
-{
+void construct(T *ptr, Args&&... args) {
 	new(ptr) T(std::forward<Args>(args)...);
 }
 
 template<typename T> inline
-void destroy(T *ptr)
-{
+void destroy(T *ptr) {
 	ptr->~T();
 }
 
 template<typename ForwardIter> inline
-void destroy_aux(ForwardIter first, ForwardIter end, std::true_type)
-{
+void destroy_aux(ForwardIter first, ForwardIter end, std::true_type) {
 }
 
 template<typename ForwardIter> inline
-void destroy_aux(ForwardIter first, ForwardIter end, std::false_type)
-{
+void destroy_aux(ForwardIter first, ForwardIter end, std::false_type) {
 	for (; first != end; ++first)
 		sx::destroy(&*first);
 }
 
 template<typename InputIter, typename ForwardIter> inline
-ForwardIter uninitialized_copy(InputIter first, InputIter end, ForwardIter result)
-{
+ForwardIter uninitialized_copy(InputIter first, InputIter end, ForwardIter result) {
 	using has_traivial = has_traivial_destructor_t<ForwardIter>;
 	return uninitialized_copy_aux(first, end, result, has_traivial{});
 }
 
 template<> inline
-char *uninitialized_copy(char *first, char *last, char *result)
-{
+char *uninitialized_copy(char *first, char *last, char *result) {
 	memmove((void*)result, (void*)first, last - first);
 	return result + (last - first);
 }
 
 template<> inline
-wchar_t *uninitialized_copy(wchar_t *first, wchar_t *last, wchar_t *result)
-{
+wchar_t *uninitialized_copy(wchar_t *first, wchar_t *last, wchar_t *result) {
 	memmove((void*)result, (void*)first, last - first);
 	return result + (last - first);
 }
 
 template<typename InputIter, typename ForwardIter> inline
-ForwardIter uninitialized_copy_aux(InputIter first, InputIter last, ForwardIter result, std::false_type)
-{
+ForwardIter uninitialized_copy_aux(InputIter first, InputIter last, ForwardIter result, std::false_type) {
 	InputIter begin = first;
 	try {
 		for (; first != last; ++first, ++result)
@@ -106,21 +98,18 @@ ForwardIter uninitialized_copy_aux(InputIter first, InputIter last, ForwardIter 
 }
 
 template<typename InputIter, typename ForwardIter> inline
-ForwardIter uninitialized_copy_aux(InputIter first, InputIter last, ForwardIter result, std::true_type)
-{
+ForwardIter uninitialized_copy_aux(InputIter first, InputIter last, ForwardIter result, std::true_type) {
 	return std::copy(first, last, result);
 }
 
 template<typename ForwardIter, typename T> inline
-ForwardIter uninitialized_fill(ForwardIter first, ForwardIter last, T const &value)
-{
+ForwardIter uninitialized_fill(ForwardIter first, ForwardIter last, T const &value) {
 	using has_traivial = has_traivial_destructor_t< ForwardIter>;
 	return uninitialized_fill_aux(first, last, value, has_traivial{});
 }
 
 template<typename ForwardIter, typename T> inline
-ForwardIter uninitialized_fill_aux(ForwardIter first, ForwardIter end, T const &value, std::false_type)
-{
+ForwardIter uninitialized_fill_aux(ForwardIter first, ForwardIter end, T const &value, std::false_type) {
 	ForwardIter begin = first;
 	try {
 		for (; first < end; ++first)
@@ -134,28 +123,25 @@ ForwardIter uninitialized_fill_aux(ForwardIter first, ForwardIter end, T const &
 }
 
 template<typename ForwardIter, typename T> inline
-ForwardIter uninitialized_fill_aux(ForwardIter first, ForwardIter last, T const &value, std::true_type)
-{
+ForwardIter uninitialized_fill_aux(ForwardIter first, ForwardIter last, T const &value, std::true_type) {
 	std::fill(first, last, value);
 	return last;
 }
 
 template<typename ForwardIter, typename T> inline
-ForwardIter uninitialized_fill_n(ForwardIter first, std::size_t n, T const &value)
-{
+ForwardIter uninitialized_fill_n(ForwardIter first, std::size_t n, T const &value) {
+	using value_type = decltype(*ForwardIter());
 	using has_traivial = has_traivial_destructor_t<decltype(sx::iterator_value_type(ForwardIter{}))>;
 	return uninitialized_fill_n_aux(first, n, value, has_traivial{});
 }
 
 template<typename ForwardIter, typename T> inline
-ForwardIter uninitialized_fill_n_aux(ForwardIter first, std::size_t n, T const &value, std::true_type)
-{
+ForwardIter uninitialized_fill_n_aux(ForwardIter first, std::size_t n, T const &value, std::true_type) {
 	return std::fill_n(first, n, value);
 }
 
 template<typename ForwardIter, typename T> inline
-ForwardIter uninitialized_fill_n_aux(ForwardIter first, std::size_t n, T const &value, std::false_type)
-{
+ForwardIter uninitialized_fill_n_aux(ForwardIter first, std::size_t n, T const &value, std::false_type) {
 	ForwardIter begin = first;
 	try {
 		for (std::size_t i = 0; i < n; ++i, ++first)
@@ -169,20 +155,18 @@ ForwardIter uninitialized_fill_n_aux(ForwardIter first, std::size_t n, T const &
 }
 
 template<typename ForwardIter> inline
-void destroy(ForwardIter first, ForwardIter last)
-{
-	using trivial_destructor = typename has_traivial_destructor<ForwardIter>::type;
+void destroy(ForwardIter first, ForwardIter last) {
+	using value_type = decltype(*ForwardIter());
+	using trivial_destructor = typename has_traivial_destructor<value_type>::type;
 	destroy_aux(first, last, trivial_destructor{});
 }
 
 template<> inline
-void destroy(char *, char *)
-{
+void destroy(char *, char *) {
 }
 
 template<> inline
-void destroy(wchar_t *, wchar_t *)
-{
+void destroy(wchar_t *, wchar_t *) {
 }
 
 }

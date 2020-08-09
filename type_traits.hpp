@@ -64,6 +64,9 @@ public:
 template<typename T>
 using has_noexcept_move_construct_t = typename has_noexcept_move_construct<T>::type;
 
+template<typename T>
+static constexpr bool has_noexcept_move_construct_v = has_noexcept_move_construct_t<T>::value;
+
 
 /* 转换分配器的类型 */
 template<typename T, typename R,
@@ -119,11 +122,12 @@ using has_iterator_tag_t = typename __has_iterator_tag<Iterator>::type;
 
 template<typename Iterator>
 struct is_iterator {
-	using type = std::conditional_t<__is_pointer_iterator_t<Iterator>::value, 
-					std::true_type,
-					std::conditional_t<__is_class_iterator_t<Iterator>::value,
-						has_iterator_tag_t<Iterator>,
-						std::false_type>>;
+	using type = 
+		 std::conditional_t<__is_pointer_iterator_t<Iterator>::value, 
+							std::true_type,
+							std::conditional_t<__is_class_iterator_t<Iterator>::value,
+											   has_iterator_tag_t<Iterator>,
+											   std::false_type>>;
 };
 
 template<typename Iterator>
@@ -221,6 +225,40 @@ using is_convertible_iter_type_t = typename is_convertible_iter_type<Iter, To>::
 
 template<typename Iter, typename To>
 static constexpr bool is_convertible_iter_type_v = is_convertible_iter_type_t<Iter, To>::value;
+
+
+
+template<typename F, typename... Args,
+		 typename = decltype(std::declval<F>()(std::declval<Args>()...))>
+std::true_type IsVaildImpl(void *) { return std::true_type(); }
+
+template<typename F, typename... Args>
+std::false_type IsVaildImpl(...) { return std::false_type(); }
+ 
+inline constexpr
+auto IsValid = [](auto f) {
+	return [](auto&&... args) {
+		return IsVaildImpl<decltype(f), decltype(args)&&...>(nullptr);
+	};
+};
+
+template<typename T>
+using has_operator_add_add_t = decltype(IsValid(&T::operator++)(std::declval<T *>()));
+
+template<typename T>
+static constexpr bool has_operator_add_add_v = has_operator_add_add_t<T>::value;
+
+template<typename T>
+using has_operator_equal_t = decltype(IsValid(std::equal_to<T>())(std::declval<T>(), std::declval<T>()));
+
+template<typename T>
+static constexpr bool has_operator_equal_v = has_operator_equal_t<T>::value;
+
+template<typename T>
+using has_operator_not_equal_t = decltype(IsValid(std::equal_to<T>())(std::declval<T>(), std::declval<T>()));
+
+template<typename T>
+static constexpr bool has_operator_not_equal_v = has_operator_not_equal_t<T>::value;
 
 } 	// !nampscace sx
 

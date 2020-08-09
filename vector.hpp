@@ -15,21 +15,21 @@ class vector_empty : public std::exception {
 template<typename T, typename Alloc = sx::allocator<T>>
 class vector;
 
-template<typename T, typename Alloc>
-void swap(vector<T, Alloc> &, vector<T, Alloc> &) noexcept;
 
 template<typename T, typename Alloc>
 class vector : public sx::comparetor<vector<T, Alloc>> {
 public:
-	using value_type 		= T;
-	using size_type 		= std::size_t;
-	using difference_type 	= std::ptrdiff_t;
-	using pointer 			= T *;
-	using reference 		= T &;
-	using const_pointer 	= T const *;
-	using const_reference 	= T const &;
-	using iterator 			= T *;
-	using const_iterator 	= T const *;
+	using value_type 			 = T;
+	using size_type 			 = std::size_t;
+	using difference_type 		 = std::ptrdiff_t;
+	using pointer 				 = T *;
+	using reference 			 = T &;
+	using const_pointer 		 = T const *;
+	using const_reference 		 = T const &;
+	using iterator 				 = T *;
+	using const_iterator 		 = T const *;
+	using reverse_iterator		 = sx::__reverse_iterator<iterator>;
+	using const_reverse_iterator = sx::__reverse_iterator<const_iterator>;
 private:
 	static Alloc 		allocator;			/* 分配器 */
 	iterator 			start;				/* 使用空间开始 */
@@ -57,7 +57,7 @@ public:
 
 	vector &operator=(vector const &other) {
 		vector tmp = other;
-		swap(*this, tmp);
+		swap(tmp);
 		return *this; 
 	}
 
@@ -213,6 +213,22 @@ public:
 		return finish;
 	}
 
+	reverse_iterator rbegin() noexcept {
+		return reverse_iterator(end());
+	}
+
+	reverse_iterator rend() noexcept {
+		return reverse_iterator(begin());
+	}
+
+	const_reverse_iterator crbegin() noexcept {
+		return const_reverse_iterator(cend());
+	}
+
+	const_reverse_iterator crend() noexcept {
+		return const_reverse_iterator(cbegin());
+	}
+
 	reference front() {
 		return *start;
 	}
@@ -291,18 +307,14 @@ public:
 			iterator new_finish = new_start;
 			iterator ret;
 			
-			/* 使用移动构造, 移动元素 */
-			auto has_noexcept_move_construct = [&]()->void {
+			if constexpr (has_noexcept_move_construct_v<T>) {	/* 使用移动构造, 移动元素 */
 				new_finish = sx::uninitialized_copy(std::make_move_iterator(start),
 									   				std::make_move_iterator(position), new_start);
 				new_finish = sx::uninitialized_fill_n(new_finish, size, value);
 				ret = new_finish;
 				new_finish = sx::uninitialized_copy(std::make_move_iterator(position), 
 													std::make_move_iterator(finish), new_finish);
-			};
-
-			/* 使用拷贝构造, 移动元素 */
-			auto has_not_noexcept_move_construct = [&]()->void {
+			} else {	/* 使用拷贝构造, 移动元素 */
 				try {
 					new_finish = sx::uninitialized_copy(start, position, new_finish);
 					new_finish = sx::uninitialized_fill_n(new_finish, size, value);
@@ -314,9 +326,8 @@ public:
 					allocator.deallocate(new_start, new_size);
 					throw;
 				}
-			};
-			conditional_execute(has_noexcept_move_construct, has_noexcept_move_construct,
-						 		has_noexcept_move_construct_t<T>{});
+			}
+
 			allocator.destroy(start, finish);
 			deallocate();
 			start = new_start;
@@ -374,14 +385,14 @@ public:
 	}
 
 	reference at(std::size_t index) {
-		if (index > size())
+		if (index >= size())
 			throw std::out_of_range("invalid index");
 
 		return (*this)[index];
 	}
 
 	const_reference at(std::size_t index) const {
-		if (index > size())
+		if (index >= size())
 			throw std::out_of_range("invalid index");
 
 		return (*this)[index];
@@ -394,23 +405,19 @@ public:
 		iterator new_start = allocator.allocate(reserve_size);
 		iterator new_finish = new_start;
 		
-		/* 移动构造移动元素 */
-		auto has_noexcept_move_construct = [&]()->void {
-			new_finish = sx::uninitialized_copy(std::make_move_iterator(start), 
+		if constexpr (sx::has_noexcept_move_construct_v<value_type>) {
+			new_finish = sx::uninitialized_copy(std::make_move_iterator(start),
 												std::make_move_iterator(finish), new_start);
-		};
-
-		/* 拷贝构造移动元素 */
-		auto has_not_noexcept_move_construct = [&]()->void {
+		} else {
 			try {
 				new_finish = sx::uninitialized_copy(start, finish, new_start);
-			} catch(...) {
+			}
+			catch (...) {
 				allocator.deallocate(new_start, reserve_size);
 				throw;
 			}
-		};
-		conditional_execute(has_noexcept_move_construct, has_not_noexcept_move_construct,
-							sx::has_noexcept_move_construct_t<value_type>{});
+		}
+
 		allocator.deallocate(start, capacity());
 		start = new_start;
 		finish = new_finish;
@@ -444,14 +451,7 @@ public:
 		swap(finish, other.finish);
 		swap(end_of_store, other.end_of_store);
 	}
-
-
 };
-
-template<typename T, typename Alloc>
-void swap(vector<T, Alloc> &lhs, vector<T, Alloc> &rhs) noexcept {
-	lhs.swap(rhs);
-}
 
 template<typename T, typename Alloc>
 Alloc vector<T, Alloc>::allocator;
