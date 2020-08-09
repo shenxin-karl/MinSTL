@@ -445,8 +445,8 @@ public:
     }
 
     template<typename InpuIterator,
-        typename = std::enable_if_t<sx::is_input_iterator_v<InputIterator> 
-        && sx::is_convertible_iter_type_v<InputIterator, value_type>>>
+        typename = std::enable_if_t<sx::is_input_iterator_v<InputIterator> && 
+									sx::is_convertible_iter_type_v<InputIterator, value_type>>>
     iterator insert_equal(InpuIterator first, InpuIterator last) {
         iterator ret;
         for ( ; first != last; ++first)

@@ -26,6 +26,9 @@
     <ClCompile Include="test_set.cpp">
       <Filter>测试文件</Filter>
     </ClCompile>
+    <ClCompile Include="test_list.cpp">
+      <Filter>测试文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="algorithm.hpp">
@@ -96,6 +99,9 @@
     </ClInclude>
     <ClInclude Include="vector.hpp">
       <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="test_head.hpp">
+      <Filter>测试文件</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

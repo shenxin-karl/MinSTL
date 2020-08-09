@@ -105,6 +105,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="test_list.cpp" />
     <ClCompile Include="test_map.cpp" />
     <ClCompile Include="test_set.cpp" />
     <ClCompile Include="test_vector.cpp" />
@@ -127,6 +128,7 @@
     <ClInclude Include="rbtree.hpp" />
     <ClInclude Include="set.hpp" />
     <ClInclude Include="stack.hpp" />
+    <ClInclude Include="test_head.hpp" />
     <ClInclude Include="typelist.hpp" />
     <ClInclude Include="type_traits.hpp" />
     <ClInclude Include="unordered_map.hpp" />

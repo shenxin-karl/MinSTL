@@ -1,4 +1,5 @@
-﻿#ifndef M_LIST_HPP
+﻿
+#ifndef M_LIST_HPP
 #define M_LIST_HPP
 #include "allocator.hpp"
 #include "iterator.hpp"
@@ -87,19 +88,21 @@ public:
 };
 
 template<typename T, typename Alloc>
-class list : public sx::comparetor<list<T, Alloc> {
+class list : public sx::comparetor<list<T, Alloc>> {
 	using Allocator = decltype(sx::transform_alloator_type<T, __link_node<T>>(Alloc{}));
 public: 
-    using value_type            = T;
-    using pointer               = T *;
-    using reference             = T &;
-    using const_pointer         = T const *;
-    using const_reference       = T const &;
-    using size_type             = std::size_t;
-    using difference_type       = std::ptrdiff_t;
-    using link_node_ptr         = __link_node<T> *;
-    using iterator              = __list_iterator<T, T *, T &>;
-	using const_iterator		= __list_iterator<T, T const *, T const &>;
+    using value_type             = T;
+    using pointer                = T *;
+    using reference              = T &;
+    using const_pointer          = T const *;
+    using const_reference        = T const &;
+    using size_type              = std::size_t;
+    using difference_type        = std::ptrdiff_t;
+    using link_node_ptr          = __link_node<T> *;
+    using iterator               = __list_iterator<T, T *, T &>;
+	using const_iterator		 = __list_iterator<T, T const *, T const &>;
+	using reverse_iterator		 = sx::__reverse_iterator<iterator>;
+	using const_reverse_iterator = sx::__reverse_iterator<const_iterator>;
 protected:
     static Allocator        allocator;          /* 数据分配器 */
     link_node_ptr           head_node;          /* 头结点 */
@@ -200,6 +203,11 @@ public:
 		return *this;
 	}
 
+	list(std::initializer_list<T> ilst) {
+		empty_initialized();
+		insert(ilst.begin(), ilst.end());
+	}
+
 	~list() {
 		destroy();
 	}
@@ -221,11 +229,11 @@ public:
     }
 
 	const_iterator begin() const {
-		return const_iterator(head_node->next);
+		return cbegin();
 	}
 
 	const_iterator end() const {
-		return const_iterator(head_node);
+		return cend();
 	}
 
     const_iterator cbegin() const {
@@ -235,6 +243,22 @@ public:
     const_iterator cend() const {
         return const_iterator(head_node);
     }
+
+	reverse_iterator rbegin() noexcept {
+		return reverse_iterator(end());
+	}
+
+	reverse_iterator rend() noexcept {
+		return reverse_iterator(begin());
+	}
+
+	const_reverse_iterator crbegin() const noexcept {
+		return const_reverse_iterator(cend());
+	}
+
+	const_reverse_iterator crend() const noexcept {
+		return const_reverse_iterator(cbegin());
+	}
 
     reference front() {
         return *begin();
@@ -298,6 +322,18 @@ public:
         ++node_size;
         return position;
     }
+
+	template<typename InputIter,
+			 typename = std::enable_if_t<sx::is_input_iterator_v<InputIter> && 
+										 sx::is_convertible_iter_type_v<InputIter, value_type>>>
+	iterator insert(InputIter first, InputIter last) {
+		iterator ret;
+		while (first != last) {
+			ret = insert(end(), *first);
+			++first;
+		}
+		return ret;
+	}
 
     template<typename... Args>
     iterator emplace(iterator position, Args&&... args) {

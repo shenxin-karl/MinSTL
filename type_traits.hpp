@@ -1,5 +1,4 @@
-#ifndef M_TYPE_TRAITS_HPP
-#define M_TYPE_TRAITS_HPP
+#pragma once
 #include "iterator.hpp"
 #include <type_traits>
 
@@ -227,7 +226,6 @@ template<typename Iter, typename To>
 static constexpr bool is_convertible_iter_type_v = is_convertible_iter_type_t<Iter, To>::value;
 
 
-
 template<typename F, typename... Args,
 		 typename = decltype(std::declval<F>()(std::declval<Args>()...))>
 std::true_type IsVaildImpl(void *) { return std::true_type(); }
@@ -262,4 +260,3 @@ static constexpr bool has_operator_not_equal_v = has_operator_not_equal_t<T>::va
 
 } 	// !nampscace sx
 
-#endif
