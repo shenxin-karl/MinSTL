@@ -1,6 +1,6 @@
-﻿﻿#ifndef M_HEAP_ALGORITHM_HPP
-#define M_HEAP_ALGORITHM_HPP
-#include "miterator.hpp"
+﻿#ifndef HEAP_ALGORITHP_HPP
+#define HEAP_ALGORITHP_HPP
+#include "iterator.hpp"
 #include <utility>
 
 namespace sx {

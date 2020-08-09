@@ -2,6 +2,7 @@
 #include "vector.hpp"
 #include <string.h>
 
+#if 0
 using std::cout;
 using std::endl;
 using std::ends;
@@ -114,6 +115,7 @@ void vector_resize() {
 	for (auto const &str : vec)
 		cout << static_cast<void const *>(str.str) << endl;			// 20 个默认构造的 String
 }
+#endif
 
 #if 0
 int main(void) {

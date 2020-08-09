@@ -22,7 +22,7 @@ template<typename Key, typename Value,
 	typename HashFunc, typename EqualFunc,
 	typename Alloc>
 class unordered_map {
-	/* ��ȡ pair �е� Key */
+	/* 提取 key  */
 	struct extract_key_type {
 		Key const &operator()(std::pair<const Key, Value> const &par) const noexcept {
 			return par.first;
@@ -45,7 +45,7 @@ public:
 	using iterator			= typename hashtable::iterator;
 	using const_iterator	= typename hashtable::const_iterator;
 private:
-	hashtable				table;		/* �ײ� hash_table ���� */
+	hashtable				table;		/* 底层 hash table 容器 */
 public:
 	unordered_map() : table(100, HashFunc(), EqualFunc()) { }
 

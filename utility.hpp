@@ -1,4 +1,4 @@
-#ifndef M_UTILITY_HPP
+﻿#ifndef M_UTILITY_HPP
 #define M_UTILITY_HPP
 
 namespace sx {

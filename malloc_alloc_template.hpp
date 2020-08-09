@@ -65,7 +65,7 @@ void *malloc_alloc_template<inst>::oom_malloc(std::size_t n)
 }
 
 template<int inst>
-void *malloc_alloc_template<inst>::oom_realloc(void *ptr, size_t n)
+void *malloc_alloc_template<inst>::oom_realloc(void *ptr, std::size_t n)
 {
 	void(*my_malloc_handler)();
 	void *result;

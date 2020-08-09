@@ -1,3 +1,4 @@
+
 #ifndef CONSTRUCT_HPP
 #define CONSTRUCT_HPP
 #include <cstddef>

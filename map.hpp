@@ -1,4 +1,4 @@
-#ifndef M_MAP_HPP
+﻿#ifndef M_MAP_HPP
 #define M_MAP_HPP
 #include "allocator.hpp"
 #include "utility.hpp"
@@ -36,7 +36,7 @@ public:
 		}
 	};
 	
-	/* ��ȡ value �е� key ֵ */
+	/* key 转换成 Value */
 	struct key_of_value {
 		key_type const &operator()(value_type const &par) const {
 			return par.first;
@@ -54,7 +54,7 @@ public:
 	using iterator			= typename Container::iterator;
 	using const_iterator	= typename Container::const_iterator;
 private:
-	Container container;		/* �ײ��������� */
+	Container container;		/* 底层红黑树容器 */
 public:
 	map() : container(Compare()) {}
 
@@ -229,7 +229,7 @@ public:
 		}
 	};
 	
-	/* ��ȡ value �е� key ֵ */
+	/* key 转换成 value ֵ */
 	struct key_of_value {
 		key_type const &operator()(value_type const &par) const {
 			return par.first;

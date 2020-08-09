@@ -1,6 +1,6 @@
 #ifndef M_TYPE_LIST_HPP
 #include "type_traits.hpp"
-#include <stddef.h>
+#include <cstdint>
 
 namespace sx {
 

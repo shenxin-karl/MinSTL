@@ -1,4 +1,4 @@
-#ifndef M_UNORDERED_SET_HPP
+﻿#ifndef M_UNORDERED_SET_HPP
 #define M_UNORDERED_SET_HPP
 #include "hash_table.hpp"
 #include "type_traits.hpp"
@@ -28,7 +28,7 @@ public:
 	using iterator			= typename hashtable::const_iterator;
 	using const_iterator	= typename hashtable::const_iterator;
 public:
-	hashtable	table;		/* �ײ� hashtable ���� */
+	hashtable	table;		/* 底层 hash table 容器 */
 public:
 	unordered_set() : table(100, HashFunc(), EqualFunc()) { }
 
@@ -215,7 +215,7 @@ public:
 	using iterator			= typename hashtable::const_iterator;
 	using const_iterator	= typename hashtable::const_iterator;
 public:
-	hashtable	table;		/* �ײ� hashtable ���� */
+	hashtable	table;		/* 底层 hashtable 容器 */
 public:
 	unordered_multiset() : table(100, HashFunc(), EqualFunc()) { }
 
