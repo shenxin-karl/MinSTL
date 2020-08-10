@@ -192,8 +192,11 @@ public:
 		other.empty_initialized();
 	}
 
-	list &operator=(list other) {
-		swap(other);
+	list &operator=(list const &other) {
+		if (this == &other)
+			return *this;
+		list tmp = other;
+		swap(tmp);
 		return *this;
 	}
 
@@ -203,9 +206,15 @@ public:
 		return *this;
 	}
 
-	list(std::initializer_list<T> ilst) {
+	list &operator=(std::initializer_list<T> const &ilst) {
+		list tmp(ilst);
+		swap(tmp);
+		return *this;
+	}
+
+	list(std::initializer_list<T> const &ilst) {
 		empty_initialized();
-		insert(ilst.begin(), ilst.end());
+		insert(end(), ilst.begin(), ilst.end());
 	}
 
 	~list() {
@@ -316,36 +325,29 @@ public:
         return position;
     }
 
-    const_iterator insert(const_iterator position, value_type const &value) {
-        link_node_ptr node = position.node_ptr;
-        insert_aux(iterator(node), value);
-        ++node_size;
-        return position;
-    }
+	iterator insert(iterator pos, value_type &&value) {
+		insert_aux(pos, std::move(value));
+		++node_size;
+		return pos;
+	}
 
 	template<typename InputIter,
 			 typename = std::enable_if_t<sx::is_input_iterator_v<InputIter> && 
 										 sx::is_convertible_iter_type_v<InputIter, value_type>>>
-	iterator insert(InputIter first, InputIter last) {
-		iterator ret;
+	void insert(iterator pos, InputIter first, InputIter last) {
 		while (first != last) {
-			ret = insert(end(), *first);
+			pos = insert(pos, *first);
 			++first;
 		}
-		return ret;
+	}
+
+	void insert(iterator pos, std::initializer_list<value_type> const &ilst) {
+		insert(pos, ilst.begin(), ilst.end());
 	}
 
     template<typename... Args>
     iterator emplace(iterator position, Args&&... args) {
         insert_aux(position, std::forward<Args>(args)...);
-        ++node_size;
-        return position;
-    }
-
-    template<typename... Args>
-    const_iterator emplace(const_iterator position, Args&&... args) {
-        link_node_ptr node = position.node_ptr;
-        insert_aux(iterator(node), std::forward<Args>(args)...);
         ++node_size;
         return position;
     }
@@ -365,15 +367,17 @@ public:
         return iterator(ret);
     }
 
-    const_iterator erase(const_iterator position) {
-        link_node_ptr node = position.node_ptr;
-        iterator ret = erase(iterator(node));
-        return const_iterator(ret.node_ptr);
-    }
+	iterator erase(iterator first, iterator last) {
+		link_node_ptr first_node = first.node_ptr;
+		link_node_ptr last_node = last.node_ptr;
+		node_size -= sx::distance(first, last);
+		last_node->prev = first_node->prev;
+		first_node->prev->next = last_node;
+		return last;
+	}
 
     void remove(value_type const &value) {
-        const_iterator iter_cend = cend();
-        for (auto iter = cbegin(); iter != iter_cend;) {
+        for (auto iter = cbegin(); iter != cend(); ) {
             if (*iter == value) {
                 iter = erase(iter);
                 continue;
@@ -409,7 +413,7 @@ public:
         other.node_size -= 1;
     }
 
-    void meger(list &other) {
+    void merge(list &other) {
         iterator first1 = begin();
         iterator end1 = end();
         iterator first2 = other.begin();

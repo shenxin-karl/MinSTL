@@ -1,4 +1,5 @@
-﻿#ifndef M_DEQUE_HPP
+﻿
+#ifndef M_DEQUE_HPP
 #define M_DEQUE_HPP
 #include "allocator.hpp"
 #include "iterator.hpp"

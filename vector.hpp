@@ -1,4 +1,5 @@
-﻿#ifndef M_VECTOR_HPP
+﻿
+#ifndef M_VECTOR_HPP
 #define M_VECTOR_HPP
 #include "allocator.hpp"
 #include "iterator.hpp"
@@ -108,16 +109,6 @@ private:
 		}
 	}
 
-	template<typename Func1, typename Func2>
-	static void conditional_execute(Func1 &func1, Func2 &func2, std::true_type) {
-		func1();
-	}
-
-	template<typename Func1, typename Func2>
-	static void conditional_execute(Func1 &func1, Func2 &func2, std::false_type) {
-		func2();
-	}
-
 	/* 插入辅助函数, 当到达 position 位置时, 调用 func 闭包函数立即构造元素 */
 	template<typename ConstructFunc>
 	iterator insert_aux(iterator position, ConstructFunc const &construct_func) {
@@ -205,11 +196,11 @@ public:
 		return finish;
 	}
 
-	const_iterator cbegin() const {
+	const_iterator cbegin() const noexcept {
 		return start;
 	}
 
-	const_iterator cend() const {
+	const_iterator cend() const noexcept {
 		return finish;
 	}
 
@@ -221,11 +212,11 @@ public:
 		return reverse_iterator(begin());
 	}
 
-	const_reverse_iterator crbegin() noexcept {
+	const_reverse_iterator crbegin() const noexcept {
 		return const_reverse_iterator(cend());
 	}
 
-	const_reverse_iterator crend() noexcept {
+	const_reverse_iterator crend() const noexcept {
 		return const_reverse_iterator(cbegin());
 	}
 
@@ -260,6 +251,13 @@ public:
 		return insert_aux(position, construct_func);
 	}
 
+	iterator insert(iterator position, value_type &&value) {
+		auto construct_func = [&](iterator pos) {
+			allocator.construct(pos, std::move(value));
+		};
+		return insert_aux(position, construct_func);
+	}
+
 	template<typename... Args>
 	iterator emplace(iterator position, Args&&... args) {
 		auto construct_func = [&](iterator pos) {
@@ -281,9 +279,9 @@ public:
 		});
 	}
 
-	iterator insert(iterator position, size_type size, value_type const &value) {
+	void insert(iterator position, size_type size, value_type const &value) {
 		if (size == 0)
-			return position;
+			return;
 
 		size_type store_left = end_of_store - finish;
 		/* 不同开辟新空间 */
@@ -305,20 +303,17 @@ public:
 			size_type new_size = old_size != 0 ? std::max(old_size * 2, size + old_size) : size;
 			iterator new_start = allocator.allocate(new_size);
 			iterator new_finish = new_start;
-			iterator ret;
 			
 			if constexpr (has_noexcept_move_construct_v<T>) {	/* 使用移动构造, 移动元素 */
 				new_finish = sx::uninitialized_copy(std::make_move_iterator(start),
 									   				std::make_move_iterator(position), new_start);
 				new_finish = sx::uninitialized_fill_n(new_finish, size, value);
-				ret = new_finish;
 				new_finish = sx::uninitialized_copy(std::make_move_iterator(position), 
 													std::make_move_iterator(finish), new_finish);
 			} else {	/* 使用拷贝构造, 移动元素 */
 				try {
 					new_finish = sx::uninitialized_copy(start, position, new_finish);
 					new_finish = sx::uninitialized_fill_n(new_finish, size, value);
-					ret = new_finish;
 					new_finish = sx::uninitialized_copy(position, finish, new_finish);
 				} catch(...) {
 					for (iterator beg = new_start; beg != new_finish; ++beg) 
@@ -333,25 +328,29 @@ public:
 			start = new_start;
 			finish = new_finish;
 			end_of_store = new_start + new_size;
-			return ret;
+			return;
 		}
 	}
 
-	const_iterator insert(const_iterator position, std::size_t size, value_type const &value) {
-		iterator ret = insert(const_cast<iterator>(position), size, value);
-		return const_cast<const_iterator>(ret);
-	}
-	
-	const_iterator insert(const_iterator position, value_type const &value) {
-		iterator ret = insert(const_cast<iterator>(position), value);
-		return const_cast<const_iterator>(ret);
+	template<typename InputIter,
+			 typename = std::enable_if_t<sx::is_input_iterator_v<InputIter> &&
+										 sx::is_convertible_iter_type_v<InputIter>>>
+	void insert(iterator pos, InputIter first, InputIter last) {
+		while (first != last) {
+			pos = insert(pos, *first);
+			++first;
+		}
 	}
 
-	iterator erase(iterator begin, iterator end) {
-		iterator iter = std::copy(end, finish, begin);
+	void insert(iterator pos, std::initializer_list<value_type> const &ilst) {
+		insert(pos, ilst.begin(), ilst.end());
+	}
+
+	iterator erase(iterator first, iterator last) {
+		iterator iter = std::copy(last, finish, first);
 		allocator.destroy(iter, finish);
 		finish = iter;
-		return begin;
+		return first;
 	}
 
 	iterator erase(iterator position) {
@@ -360,16 +359,6 @@ public:
 		--finish;
 		allocator.destroy(finish);
 		return position;
-	}
-
-	const_iterator erase(const_iterator begin, const_iterator end) {
-		iterator ret = erase(const_cast<iterator>(begin), const_cast<iterator>(end));
-		return const_cast<const_iterator>(ret);
-	}
-
-	const_iterator erase(const_iterator postion) {
-		iterator ret = erase(const_cast<iterator>(postion));
-		return const_cast<const_iterator>(ret);
 	}
 
 	void clear() {

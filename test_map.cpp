@@ -41,7 +41,7 @@ void construct() {
 	vector<std::pair<int, int>> vec;
 	for (int i = 0; i < 20; i++)
 		vec.push_back(std::make_pair(i, rand() % 50));
-	
+
 	type map1;
 	type map2(vec.begin(), vec.end());
 	//print(map2, "map2");
