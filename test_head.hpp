@@ -20,6 +20,15 @@ public:
 		return os;
 	}
 
+	friend bool operator==(String const &first, String const &second) noexcept {
+		if (first.str == second.str)
+			return true;
+
+		if (!first.str && second.str || first.str && !second.str)
+			return false;
+
+		return strcmp(first.str, second.str) == 0;
+	}
 public:
 	char const	 *str;
 	std::size_t   length;

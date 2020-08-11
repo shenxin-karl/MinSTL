@@ -167,7 +167,6 @@ private:
     static void transfer(iterator position, iterator begin, iterator end) {
         iterator last = end;
         --last;
-
         link_node_ptr pos_node = position.node_ptr;
         link_node_ptr beg_node = begin.node_ptr;
         link_node_ptr last_node = last.node_ptr;
@@ -345,6 +344,11 @@ public:
 		insert(pos, ilst.begin(), ilst.end());
 	}
 
+	void insert(iterator pos, size_type count, value_type const &value) {
+		for (size_type idx = 0; idx < count; ++idx)
+				pos = insert(pos, value);
+	}
+
     template<typename... Args>
     iterator emplace(iterator position, Args&&... args) {
         insert_aux(position, std::forward<Args>(args)...);
@@ -358,6 +362,8 @@ public:
     }
 
     iterator erase(iterator position) {
+		if (position == end())
+			throw std::invalid_argument("invalid list erase iterator");
         link_node_ptr node = position.node_ptr;
         node->next->prev = node->prev;
         node->prev->next = node->next;
@@ -377,7 +383,7 @@ public:
 	}
 
     void remove(value_type const &value) {
-        for (auto iter = cbegin(); iter != cend(); ) {
+        for (auto iter = begin(); iter != end(); ) {
             if (*iter == value) {
                 iter = erase(iter);
                 continue;
@@ -387,18 +393,17 @@ public:
     }
 
 	void unique() {
-        const_iterator iter_cend = cend();
-		for (auto iter = cbegin(); iter != iter_cend; ) {
-			const_iterator next = iter;
-			++next;
-			if (*iter == *next) 
-				erase(iter);
-			iter = next;
+		for (auto iter = ++begin(); iter != end(); ) {
+			iterator prev = iter;
+			--prev;
+			if (*prev == *iter) 
+				erase(prev);
+			++iter;
 		}
 	}
 
     void splice(iterator position, list &other) {
-        if (!other.empty()) {
+        if (!other.empty() && this != &other) {
             transfer(position, other.begin(), other.end());
             node_size += other.size();
             other.node_size = 0;
@@ -424,8 +429,9 @@ public:
                 iterator next = first2;
                 transfer(first1, first2, ++next);
 				first2 = next;
-            } else 
-                ++first1;
+			} else {
+				++first1;
+			}
         }
 
         if (first2 != end2)
@@ -460,7 +466,7 @@ public:
             carry.splice(carry.begin(), *this, begin());
             int i = 0;
             while (i < fill && !counter[i].empty()) {
-                counter[i].meger(carry);
+                counter[i].merge(carry);
                 carry.swap(counter[i++]);
             }
             carry.swap(counter[i]);
@@ -469,7 +475,7 @@ public:
         }
 
         for (int i = 1; i < fill; ++i) 
-            counter[i].meger(counter[i - 1]);
+            counter[i].merge(counter[i - 1]);
         swap(counter[fill-1]);
     }
 

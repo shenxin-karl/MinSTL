@@ -132,8 +132,7 @@ private:
 		iterator new_finish = new_start;
 		iterator result;
 
-		/* 使用移动构造, 移动元素 */
-		auto has_noexcept_move_construct = [&]()->void {
+		if constexpr (has_noexcept_move_construct_v<value_type>) {	 /* 使用移动构造, 移动元素 */
 			new_finish = sx::uninitialized_copy(std::make_move_iterator(start), 
 												std::make_move_iterator(position), new_start);
 			construct_func(new_finish);
@@ -141,10 +140,8 @@ private:
 			++new_finish;
 			new_finish = sx::uninitialized_copy(std::make_move_iterator(position), 
 												std::make_move_iterator(finish), new_finish);
-		};
-		
-		/* 使用拷贝构造, 移动元素 */
-		auto has_not_noexcept_move_construct = [&]()->void {
+
+		} else {	/* 使用拷贝构造, 移动元素 */
 			try {
 				new_finish = sx::uninitialized_copy(start, position, new_start);
 				construct_func(new_finish);
@@ -157,9 +154,9 @@ private:
 				allocator.deallocate(new_start, new_size);
 				throw;
 			}
-		};
-		conditional_execute(has_noexcept_move_construct, 
-					 		has_not_noexcept_move_construct, has_noexcept_move_construct_t<T>{});
+		}
+		
+		
 		allocator.destroy(start, finish);
 		deallocate();
 		start = new_start;

@@ -9,16 +9,8 @@
 using std::cout;
 using std::ends;
 using std::endl;
-#if 0
 using sx::vector;
 using std::string;
-//template class sx::map<int, int>;
-//template class sx::multimap<int, int>;
-template class sx::unordered_set<int>;
-template class sx::unordered_multiset<int>;
-
-template class sx::unordered_map<int, int>;
-
 using type = sx::map<int, int>;
 using multi_type = sx::multimap<int, int>;
 
@@ -37,7 +29,7 @@ void print(Container const &container, string name) {
 }
 
 
-void construct() {
+static void construct() {
 	vector<std::pair<int, int>> vec;
 	for (int i = 0; i < 20; i++)
 		vec.push_back(std::make_pair(i, rand() % 50));
@@ -63,13 +55,11 @@ void construct() {
 	print(map6, "map6");
 	cout << map6.size();
 }
-#endif
 
-//using iterator = sx::map<int, int>::iterator;
-//using const_iterator = sx::map<int, int>::const_iterator;
+using iterator = sx::map<int, int>::iterator;
+using const_iterator = sx::map<int, int>::const_iterator;
 
-#if 0
-void insert() {
+static void insert() {
 	vector<std::pair<int, int>> vec;
 	for (size_t i = 0; i < 50; i++)
 		vec.push_back({i, i});
@@ -86,10 +76,8 @@ void insert() {
 	map1.insert(vec1.cbegin(), vec1.cend());
 	print(map1, "map1");
 }
-#endif
 
-#if 0
-void erase() {
+static void erase() {
 	vector<std::pair<int, int>> vec;
 	for (int i = 0; i < 20; ++i)
 		vec.emplace_back(std::make_pair(i, i));
@@ -105,10 +93,8 @@ void erase() {
 	map1.erase(first, last);
 	//print(map1, "map1");
 }
-#endif
 
-#if 0
-void find() {
+static void find() {
 	vector<std::pair<int, int>> vec;
 	for (int i = 0; i < 20; ++i)
 		vec.emplace_back(std::make_pair(i, i));
@@ -133,10 +119,8 @@ void find() {
 	for (; range.first != range.second; ++range.first)
 		cout << "[" << (*range.first).first << ", " << (*range.first).second << "]" << endl;
 }
-#endif
 
-#if 0
-void foo() {
+static void foo() {
 	type map1;
 	cout << "map1.empty: " << map1.empty() << endl;
 	cout << "map1.size: " << map1.size() << endl;
@@ -149,10 +133,8 @@ void foo() {
 	cout << "map1.empty: " << map1.empty() << endl;
 	cout << "map1.size: " << map1.size() << endl;
 }
-#endif
 
-#if 0
-void multi_construct() {
+static void multi_construct() {
 	vector<std::pair<int, int>> vec;
 	for (int i = 0; i < 20; ++i)
 		vec.push_back({ rand() % 20, i });
@@ -177,10 +159,8 @@ void multi_construct() {
 	cout << "mmap3.size: " << mmap3.size() << endl;
 	cout << "mmap4.size: " << mmap4.size() << endl;
 }
-#endif
 
-#if 0
-void multi_insert() {
+static void multi_insert() {
 	vector<std::pair<int, int>> vec;
 	for (int i = 0; i < 20; ++i)
 		vec.push_back({ i, i });
@@ -199,34 +179,8 @@ void multi_insert() {
 	map1.emplace(10, 50);
 	print(map1, "map1");
 }
-#endif
 
-#if 0
-void erase() {
-	vector<std::pair<int, int>> vec;
-	for (int i = 0; i < 20; i++) {
-		vec.push_back({ 1, 1 });
-	}
-
-
-	multi_type map(vec.cbegin(), vec.cend());
-	map.erase(1);
-	print(map, "map");
-
-
-	auto min = map.min();
-	auto max = map.max();
-
-	if (min != map.end())
-		cout << (*min).first << endl;
-
-	if (max != map.end())
-		cout << (*max).first << endl;
-}
-#endif // 1
-
-#if 0
-void multi_find() {
+static void multi_find() {
 	vector<std::pair<int, int>> vec;
 	for (size_t i = 0; i < 50; i++)
 		vec.push_back({ i, i });
@@ -236,7 +190,7 @@ void multi_find() {
 	if (result != mset1.end())
 		cout << (*result).first << endl;
 }
-#endif
+
 #if 0
 int main() {
 	//construct();
