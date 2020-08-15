@@ -15,7 +15,6 @@ constexpr inline std::size_t __deque_buf_size(std::size_t n, std::size_t sz) noe
 
 template<typename T, typename Alloc = sx::allocator<T>> class deque;
 template<typename T, typename Ptr, typename Ref> class __deque_iterator;
-template<typename T, typename Alloc> void swap(deque<T, Alloc> &, deque<T, Alloc> &) noexcept;
 
 template<typename T, typename Ptr, typename Ref>
 class __deque_iterator {
@@ -102,9 +101,9 @@ public:
 
     __deque_iterator &operator+=(int n) {
         difference_type offset = n + (end - cur);       /* 抽象成从 first 开始移动 */
-        if (offset >= 0 && offset < buffer_size()) 
+		if (offset >= 0 && offset < buffer_size()) {
             cur += n;
-        else {
+		} else {
             difference_type node_offset;
             node_offset = offset > 0 ? offset / buffer_size() 
                          : -difference_type((-offset - 1) / buffer_size()) - 1;
@@ -160,17 +159,18 @@ public:
 
 template<typename T, typename Alloc>
 class deque : public sx::comparetor<deque<T, Alloc>> {
-	friend void swap<T, Alloc>(deque<T, Alloc> &, deque<T, Alloc> &) noexcept;
 public:
-    using value_type        = T;
-    using pointer           = T *;
-    using reference         = T &;
-    using const_pointer     = T const *;
-    using const_reference   = T const &;
-    using difference_type   = std::ptrdiff_t;
-    using size_type         = std::size_t;
-    using iterator          = __deque_iterator<T, T *, T &>;
-	using const_iterator	= __deque_iterator<T, T const *, T const &>;
+    using value_type			 = T;
+    using pointer				 = T *;
+    using reference				 = T &;
+    using const_pointer			 = T const *;
+    using const_reference		 = T const &;
+    using difference_type		 = std::ptrdiff_t;
+    using size_type				 = std::size_t;
+    using iterator				 = __deque_iterator<T, T *, T &>;
+	using const_iterator		 = __deque_iterator<T, T const *, T const &>;
+	using reverse_iterator		 = sx::__reverse_iterator<iterator>;
+	using const_reverse_iterator = sx::__reverse_iterator<iterator>;
 protected:
     using map_pointer       = T **;
     using Map_Alloc         = decltype(sx::transform_alloator_type<T, pointer>(Alloc{}));
@@ -187,7 +187,7 @@ public:
 	}
 
     deque(int n, value_type const &value) 
-    : start(), finish(), map(nullptr), map_size(0) {
+		: start(), finish(), map(nullptr), map_size(0) {
         fill_initialize(n, value);
     }
 
@@ -206,16 +206,20 @@ public:
 	}
 
 	deque &operator=(deque &&other) {
-		deque tmp;
-		sx::swap(tmp, other);
-		sx::swap(*this, tmp);
+		deque tmp(std::move(other));
+		swap(tmp);
 		return *this;
 	}
 
 	template<typename InputIterator, 
-			 typename = std::enable_if_t<sx::is_input_iterator_v<InputIterator>>>
+			 typename = std::enable_if_t<sx::is_input_iterator_v<InputIterator> &&
+										 sx::is_bidirectional_iterator_v<InputIterator, value_type>>>
 	deque(InputIterator first, InputIterator end) {
 		alloc_and_fill(first, end);
+	}
+
+	deque(std::initializer_list<value_type> const &ilst) {
+		alloc_and_fill(ilst.begin(), ilst.end());
 	}
 
 	~deque() {
@@ -294,7 +298,7 @@ private:
         node = nullptr;
     }
 
-	/* 重启设置 map 中控区 */
+	/* 重新设置 map 中控区 */
 	void reallocate_map(size_type nodes_to_add, bool add_at_front) {
 		size_type old_num_nodes = finish.node - start.node + 1;
 		size_type new_num_nodes = old_num_nodes + nodes_to_add;
@@ -407,7 +411,6 @@ private:
 	void alloc_and_fill(InputIterator first, InputIterator end) {
 		difference_type offset = sx::distance(first, end);
 		create_map_and_nodes(offset);
-		
 		iterator iter = start;
 		try {
 			for (; iter != finish; ++iter, ++first)
@@ -415,10 +418,8 @@ private:
 		} catch (...) {
 			for (iterator beg = start; beg != iter; ++beg)
 				data_allocator.destroy(&*beg);
-			
 			for (map_pointer node = start.node; node <= finish.node; ++node)
 				data_allocator.deallocate(*node, buffer_size());
-
 			throw;
 		}
 	}
@@ -445,6 +446,22 @@ public:
 
 	const_iterator cend() const noexcept {
 		return const_iterator(finish.cur, finish.first, finish.end, finish.node);
+	}
+
+	reverse_iterator rbegin() noexcept {
+		return reverse_iterator(end());
+	}
+
+	reverse_iterator rend() noexcept {
+		return reverse_iterator(begin());
+	}
+
+	const_reverse_iterator crbegin() const noexcept {
+		return const_reverse_iterator(cend());
+	}
+
+	const_reverse_iterator crend() const noexcept {
+		return const_reverse_iterator(cbegin());
 	}
 
     size_type size() const noexcept {
@@ -483,25 +500,47 @@ public:
         if (finish.cur != (finish.end - 1)) {
             data_allocator.construct(finish.cur, value);
             ++finish.cur;
-        } else 
+        } else {
             push_back_aux(value);
+		}
     }
+
+	void push_back(value_type &&value) {
+		if (finish.cur != (finish.end - 1)) {
+			data_allocator.construct(finish.cur, std::move(value));
+			++finish.cur;
+		} else {
+			push_back_aux(std::move(value));
+		}
+	}
 
     void push_front(value_type const &value) {
         if (start.cur != start.first) {
             --start.cur;
             data_allocator.construct(start.cur, value);
-        } else 
+		} else {
             push_front_aux(value);
+		}
     }
+
+	void push_front(value_type &&value) {
+		if (start.cur != start.first) {
+			--start.cur;
+			data_allocator.construct(start.cur, std::move(value));
+		} else {
+			push_front_aux(std::move(value));
+		}
+	}
 
     template<typename... Args>
     void emplace_front(Args&&... args) {
         if (start.cur != start.first) {
             --start.cur;
             data_allocator.construct(start.cur, std::forward<Args>(args)...);
-        } else 
+		}
+		else {
             push_front_aux(std::forward<Args>(args)...);
+		}
     }
 
     template<typename... Args>
@@ -509,24 +548,27 @@ public:
         if (finish.cur != (finish.end - 1)) {
             data_allocator.construct(finish.cur, std::forward<Args>(args)...);
             ++finish.cur;
-        } else 
+		} else {
             push_back_aux(std::forward<Args>(args)...);
+		}
     }
 
 	void pop_front() {
 		if (start.cur != start.end - 1) {
 			data_allocator.destroy(start.cur);
 			++start.cur;
-		} else
+		} else {
 			pop_front_aux();
+		}
 	}
 
 	void pop_back() {
 		if (finish.cur != finish.first) {
 			--finish.cur;
 			data_allocator.destroy(finish.cur);
-		} else
+		} else {
 			pop_back_aux();
+		}
 	}
 
     /* 清除整个 deque, 但是会留下一个 缓冲区 这是 deque 的策略 */
@@ -544,8 +586,9 @@ public:
             data_allocator.deallocate(finish.first, buffer_size());
         
         /* 只有一个 start 缓冲区 */
-        } else 
+		} else {
             data_allocator.destroy(start.cur, start.end);
+		}
         
         finish = start;
     }
@@ -562,7 +605,6 @@ public:
             sx::copy(pos + 1, finish, pos);
             pop_back();
         }
-
         return start + index;
     }
 
@@ -571,33 +613,35 @@ public:
         if (first == start && end == finish) {
             clear();
             return finish;
+        } 
 
+        difference_type n = end - first;                /* 清除区间的元素的数量 */
+        difference_type elems_before = first - start;   /* 清除区间前方的元素数量 */
+        /* 删除区间的前方元素比较少 */
+        if (elems_before < static_cast<difference_type>((size() - n) / 2)) {
+            sx::copy_backward(start, start + elems_before, end);
+            iterator new_start = start + n;
+            data_allocator.destroy(start, new_start);
+
+            /* 释放缓冲区 */
+            for (map_pointer cur = start.node; cur < new_start.node; ++cur)
+                data_allocator.deallocate(*cur, buffer_size());
+            /* 更新 start 位置 */
+            start = new_start;
         } else {
-            difference_type n = end - first;                /* 清除区间的元素的数量 */
-            difference_type elems_before = first - start;   /* 清除区间前方的元素数量 */
-            /* 删除区间的前方元素比较少 */
-            if (elems_before < static_cast<difference_type>((size() - n) / 2)) {
-                sx::copy_backward(start, start + elems_before, end);
-                iterator new_start = start + n;
-                data_allocator.destroy(start, new_start);
-
-                /* 释放缓冲区 */
-                for (map_pointer cur = start.node; cur < new_start.node; ++cur)
-                    data_allocator.deallocate(*cur, buffer_size());
-                /* 更新 start 位置 */
-                start = new_start;
-            } else {
-                sx::copy(end, finish, first);
-                iterator new_finish = finish - n;
-                data_allocator.destroy(new_finish, finish);
-                for (map_pointer cur = new_finish.node + 1; cur <= finish.node; ++cur) 
-                    data_allocator.deallocate(*cur);
-                finish = new_finish;
-            }
-
-            return start + elems_before;
+            sx::copy(end, finish, first);
+            iterator new_finish = finish - n;
+            data_allocator.destroy(new_finish, finish);
+            for (map_pointer cur = new_finish.node + 1; cur <= finish.node; ++cur) 
+                data_allocator.deallocate(*cur);
+            finish = new_finish;
         }
+        return start + elems_before;
     }
+
+	iterator insert(iterator pos, value_type &&value) {
+		return insert_aux(pos, std::move(value));
+	}
 
     iterator insert(iterator pos, value_type const &value) {
         if (pos == start) {
@@ -607,9 +651,29 @@ public:
             push_back(value);
             iterator ret = finish;
             return --ret;
-        } else 
+		} else {
             return insert_aux(pos, value);
+		}
     }
+
+	void insert(iterator pos, size_type count, value_type const &element) {
+		for (size_type idx = 0; idx < count; ++idx) 
+			pos = insert(pos, element);
+	}
+
+	template<typename InputIter,
+			 typename = std::enable_if<sx::is_input_iterator_v<InputIter> &&
+									   sx::is_convertible_iter_type_v<InputIter, value_type>>>
+	void insert(iterator pos, InputIter first, InputIter last) {
+		while (first != last) {
+			pos = insert(pos, *first);
+			++first;
+		}
+	}
+
+	void insert(iterator pos, std::initializer_list<value_type> const &ilst) {
+		insert(pos, ilst.begin(), ilst.end());
+	}
 
     template<typename... Args>
     iterator emplace(iterator pos, Args&&... args) {
@@ -620,19 +684,39 @@ public:
             emplace_back(std::forward<Args>(args)...);
             iterator ret = finish;
             return --ret;
-        } else 
+		} else {
             return insert_aux(pos, std::forward<Args>(args)...);
+		}
     }
-};
 
-template<typename T, typename Alloc>
-void swap(deque<T, Alloc> &first, deque<T, Alloc> &second) noexcept {
-	using std::swap;
-	swap(first.start, second.start);
-	swap(first.finish, second.finish);
-	swap(first.map, second.map);
-	swap(first.map_size, second.map_size);
-}
+	void swap(deque &other) noexcept {
+		using std::swap;
+		swap(first.start, other.start);
+		swap(first.finish, other.finish);
+		swap(first.map, other.map);
+		swap(first.map_size, other.map_size);
+	}
+
+	value_type &operator[](size_type index) {
+		return *(start + index);
+	}
+
+	value_type const &operator[](size_type index) const {
+		return *(start + index);
+	}
+
+	value_type &at(size_type index) {
+		if (index > size())
+			throw std::out_of_range("deque::at(size_type index) invalid index");
+		return *(start + index);
+	}
+
+	value_type const &at(size_type index) const {
+		if (index > size()) 
+			throw std::out_of_range("deque::at(size_type index) invalid index");
+		return *(start + index);
+	}
+};
 
 template<typename T, typename Alloc>
 Alloc deque<T, Alloc>::data_allocator{};
