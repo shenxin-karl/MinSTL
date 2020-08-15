@@ -20,7 +20,7 @@ class multimap;
 
 template<typename Key, typename Value,
 	typename Compare, typename Alloc>
-class map : public sx::comparetor<map<Key, Value, Compare, Alloc>> {
+class map : public sx::container_helpful<map<Key, Value, Compare, Alloc>> {
 public:
 	using key_type		= Key;
 	using value_type	= std::pair<const Key, Value>;
@@ -213,7 +213,7 @@ public:
 
 template<typename Key, typename Value,
 	typename Compare, typename Alloc>
-class multimap : public sx::comparetor<map<Key, Value, Compare, Alloc>> {
+class multimap : public sx::container_helpful<map<Key, Value, Compare, Alloc>> {
 public:
 	using key_type		= Key;
 	using value_type	= std::pair<const Key, Value>;

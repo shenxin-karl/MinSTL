@@ -23,7 +23,7 @@ void swap(multiset<Key, Compare, Alloc> &, multiset<Key, Compare, Alloc> &) noex
 template<typename Key,
 	typename Compare, 
 	typename Alloc>
-class set : public sx::comparetor<set<Key, Compare, Alloc>> {
+class set : public sx::container_helpful<set<Key, Compare, Alloc>> {
 public:
 	using key_type			= Key;
 	using value_type		= Key;
@@ -172,7 +172,7 @@ public:
 template<typename Key,
 	typename Compare, 
 	typename Alloc>
-class multiset : public sx::comparetor<set<Key, Compare, Alloc>> {
+class multiset : public sx::container_helpful<set<Key, Compare, Alloc>> {
 public:
 	using key_type			= Key;
 	using value_type		= Key;

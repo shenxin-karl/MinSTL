@@ -4,9 +4,9 @@
 namespace sx {
 
 
-/* �����Ƚ���, Ϊ�������ṩ �Ƚϲ����� */
+/* 容器助手 */
 template<typename Derived>
-struct comparetor {
+struct container_helpful {
 	friend bool operator==(Derived const &first, Derived const &second) noexcept {
 		if (first.size() != second.size())
 			return false;

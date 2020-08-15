@@ -18,7 +18,7 @@ class vector;
 
 
 template<typename T, typename Alloc>
-class vector : public sx::comparetor<vector<T, Alloc>> {
+class vector : public sx::container_helpful<vector<T, Alloc>> {
 public:
 	using value_type 			 = T;
 	using size_type 			 = std::size_t;
@@ -65,6 +65,12 @@ public:
 	vector &operator=(vector &&other) {
 		vector tmp = std::move(other);
 		swap(*this, tmp);
+		return *this;
+	}
+
+	vector &operator=(std::initializer_list<value_type> const &ilst) {
+		vector tmp = ilst;
+		swap(tmp);
 		return *this;
 	}
 
@@ -390,20 +396,17 @@ public:
 
 		iterator new_start = allocator.allocate(reserve_size);
 		iterator new_finish = new_start;
-		
 		if constexpr (sx::has_noexcept_move_construct_v<value_type>) {
 			new_finish = sx::uninitialized_copy(std::make_move_iterator(start),
 												std::make_move_iterator(finish), new_start);
 		} else {
 			try {
 				new_finish = sx::uninitialized_copy(start, finish, new_start);
-			}
-			catch (...) {
+			} catch (...) {
 				allocator.deallocate(new_start, reserve_size);
 				throw;
 			}
 		}
-
 		allocator.deallocate(start, capacity());
 		start = new_start;
 		finish = new_finish;

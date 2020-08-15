@@ -185,7 +185,7 @@ public:
 
 
 template<typename Key, typename Value, typename KeyOfValue, typename Compare, typename Alloc>
-class rbtree : public sx::comparetor<rbtree<Key, Value, KeyOfValue, Compare, Alloc>> {
+class rbtree : public sx::container_helpful<rbtree<Key, Value, KeyOfValue, Compare, Alloc>> {
 protected:
 	using void_pointer	= void *;
 	using base_ptr		= sx::__rbtree_node_base *;

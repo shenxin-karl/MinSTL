@@ -88,7 +88,7 @@ public:
 };
 
 template<typename T, typename Alloc>
-class list : public sx::comparetor<list<T, Alloc>> {
+class list : public sx::container_helpful<list<T, Alloc>> {
 	using Allocator = decltype(sx::transform_alloator_type<T, __link_node<T>>(Alloc{}));
 public: 
     using value_type             = T;
